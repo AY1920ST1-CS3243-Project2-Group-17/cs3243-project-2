@@ -143,13 +143,13 @@ class Csp(object):
                     # raise Exception('Backtracked')
                 else:
                     self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
-            else:
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' does not satisfy constraints for ' + str(var))
                 for k, v in variable_domain_map.items():
                     k.domain = v
+                var.domain.discard(value)
+            else:
+                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' does not satisfy constraints for ' + str(var))
             var.unset_value_and_update_neighbours(value)
             if not is_arc_consistent:
-                var.domain.discard(value)
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' discarded from domain of ' + str(var))
             self.assigned_vars.discard(var)
             self.unassigned_vars.add(var)
