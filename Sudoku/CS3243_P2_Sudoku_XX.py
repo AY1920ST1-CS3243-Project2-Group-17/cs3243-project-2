@@ -36,7 +36,7 @@ class Variable(object):
         self.value = val
         for neighbour in self.neighbours:
             neighbour.domain.discard(val)
-        [self.discard_from_domain(i) for i in self.domain.copy() if i != val]
+        [self.discard_from_domain(i) for i in self.domain.copy()]
         self.is_filled = True
 
     def unset_value_and_update_neighbours(self, val):
@@ -114,15 +114,16 @@ class Csp(object):
         if len(self.assigned_vars) - self.init_assigned >= 50:
             print(str(len(self.assigned_vars) - self.init_assigned) + ' variables assigned. ' 
                 + str(len(self.unassigned_vars)) + ' remaining.')
-            Sudoku.show_puzzle(self, show_log=True)
         self.print_log('')
         self.print_log('ID' + str(curr_id) + ' called by ' + str(caller))
+        Sudoku.show_puzzle(self, show_log=self.show_log)
         if self.is_solved():
             return True
         var = self.select_unassigned_var()
         self.print_log('ID' + str(curr_id) + ': ' + str(var) + ' selected with ordered domain ' + str(var.get_ordered_domain_values()))
         for value in var.get_ordered_domain_values():
             # self.print_log('Trying ' + str(value) + ' for ' + str(var))
+            is_arc_consistent, variable_domain_map = True, {}
             if all(self.satisfies_constraints_between(var, neighbour, value) 
                    for neighbour in var.neighbours):
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' satisfies constraints for ' + str(var))
@@ -131,25 +132,28 @@ class Csp(object):
                 self.assigned_vars.add(var)
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
                 self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
-                if self.ac_3(var):
+                is_arc_consistent, variable_domain_map = self.ac_3(var)
+                if is_arc_consistent:
                     self.print_log('ID' + str(curr_id) + ': Arc consistency maintained for ' + str(var) + ' with value ' + str(value))
                     self.print_log('ID' + str(curr_id) + ' calling ' + str(backtrack_id + 1))
                     result = self.backtrack(curr_id)
                     if result != False:
-                        self.confirm_inference()
                         return result
-                    else:
-                        self.print_log('ID' + str(curr_id) + ' received failed result, backtracking...')
+                    self.print_log('ID' + str(curr_id) + ' received failed result, backtracking...')
+                    # raise Exception('Backtracked')
                 else:
-                    var.discarded_domain.discard(value)
                     self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
-                self.undo_inference(value)
-                var.unset_value_and_update_neighbours(value)
-                self.assigned_vars.discard(var)
-                self.unassigned_vars.add(var)
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
             else:
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' does not satisfy constraints for ' + str(var))
+                for k, v in variable_domain_map.items():
+                    k.domain = v
+            var.unset_value_and_update_neighbours(value)
+            if not is_arc_consistent:
+                var.domain.discard(value)
+                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' discarded from domain of ' + str(var))
+            self.assigned_vars.discard(var)
+            self.unassigned_vars.add(var)
+            self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
         return False
     
     def satisfies_constraints_between(self, var, other, 
@@ -185,17 +189,23 @@ class Csp(object):
             queue.append((neighbour, var))
         # print('Initial AC3 Queue: ' + str(queue))
         # variables_with_discarded_domain_vals = []
+        variable_domain_map = {}
 
         def revise(xi, xj):
             revised = False
-            for x in xi.domain.copy():
-                # if xi.name == 'I9' or xj.name == 'I9':
-                #     print('Checking xi: ' + str(xi) + ' with domain ' + str(xi.domain) + ' and value ' + str(x)
-                #         + ' when compared to xj: ' +  str(xj) + ' with domain ' + str(xj.domain))
+            xi_domain_copy = xi.domain.copy()
+            for x in xi_domain_copy:
+                if xi.name == 'F7' or xj.name == 'F7':
+                    self.print_log('Checking xi: ' + str(xi) + ' with domain ' + str(xi.domain) + ' and value ' + str(x)
+                        + ' when compared to xj: ' +  str(xj) + ' with domain ' + str(xj.domain))
                 if not any(self.satisfies_constraints_between(xi, xj, x, y) 
                         for y in (xj.domain if not xj.is_filled else [xj.value])):
                     self.print_log(str(x) + ' discarded from xi: ' + str(xi) + ' when compared to xj: ' +  str(xj))
-                    xi.discard_from_domain(x)
+                    try:
+                        variable_domain_map[xi]
+                    except KeyError:
+                        variable_domain_map[xi] = xi_domain_copy
+                    xi.domain.discard(x)
                     self.variables_with_discarded_domain_vals.append(xi)
                     revised = True
             return revised
@@ -209,7 +219,7 @@ class Csp(object):
                 for xk in xi.neighbours:
                     if xk is not xj:
                         queue.append((xk, xi))
-        return True
+        return True, variable_domain_map
 
     def is_solved(self):
         return len(self.unassigned_vars) == 0
