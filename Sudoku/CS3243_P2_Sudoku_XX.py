@@ -14,7 +14,7 @@ class Variable(object):
         self.is_filled = True if self.value is not None else False
         self.domain = set() if domain is None else domain
         self.neighbours = set() if neighbours is None else neighbours
-        self.discarded_domain = []
+        self.discarded_domain = set()
 
     def add_neighbour(self, other):
         self.neighbours.add(other)
@@ -51,14 +51,16 @@ class Variable(object):
 
     def discard_from_domain(self, val):
         self.domain.discard(val)
-        self.discarded_domain.append(val)
+        self.discarded_domain.add(val)
     
     def clear_discarded_domain(self):
-        self.discarded_domain = []
+        self.discarded_domain = set()
 
-    def restore_discarded_domain(self):
+    def restore_discarded_domain(self, except_val=None):
         for val in self.discarded_domain:
             self.domain.add(val)
+        if except_val is not None:
+            self.domain.discard(except_val)
         self.clear_discarded_domain()
 
     @staticmethod
@@ -130,18 +132,19 @@ class Csp(object):
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
                 self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
                 if self.ac_3(var):
-                    self.confirm_inference()
                     self.print_log('ID' + str(curr_id) + ': Arc consistency maintained for ' + str(var) + ' with value ' + str(value))
                     self.print_log('ID' + str(curr_id) + ' calling ' + str(backtrack_id + 1))
                     result = self.backtrack(curr_id)
                     if result != False:
+                        self.confirm_inference()
                         return result
                     else:
                         self.print_log('ID' + str(curr_id) + ' received failed result, backtracking...')
                 else:
+                    var.discarded_domain.discard(value)
                     self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
+                self.undo_inference(value)
                 var.unset_value_and_update_neighbours(value)
-                self.undo_inference()
                 self.assigned_vars.discard(var)
                 self.unassigned_vars.add(var)
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
@@ -165,7 +168,7 @@ class Csp(object):
             other.value = temp2
         return is_valid
 
-    def undo_inference(self):
+    def undo_inference(self, except_val):
         for var in self.variables_with_discarded_domain_vals:
             var.restore_discarded_domain()
         self.variables_with_discarded_domain_vals = []
