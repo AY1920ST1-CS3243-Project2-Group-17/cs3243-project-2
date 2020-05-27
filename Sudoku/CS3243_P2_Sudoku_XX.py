@@ -17,10 +17,6 @@ class Variable(object):
 
     def add_neighbour(self, other):
         self.neighbours.add(other)
-        # if self.name == 'A1':
-        #     print(self, other, self.neighbours, len(self.neighbours))
-        # elif other.name == 'A1':
-        #     print(other, self, self.neighbours)
 
     def get_ordered_domain_values(self):
         def comparator(val):
@@ -54,34 +50,9 @@ class Variable(object):
     def not_equal(var, other):
         return (var is not None and other is not None 
                 and var.value != other.value)
-
-    # def __eq__(self, other):
-    #     return self.value == other.value
-
-    # def __hash__(self):
-    #     return hash(self.name)
     
     def __repr__(self):
         return str((self.name, self.value))
-
-# class AllDiffChecker(object):
-#     def __init__(self, var):
-#         self.var = var
-
-
-# class AllDiffChecker(object):
-#     def __init__(self, var_ls):
-#         self.var_ls = var_ls
-#     def check(self):
-#         # print(self.var_ls)
-#         # print([var.name for var in self.var_ls])
-#         for i in range(len(self.var_ls)-1):
-#             for j in range(i+1, len(self.var_ls)):
-#                 if (self.var_ls[i].value is not None 
-#                     and self.var_ls[j].value is not None
-#                     and self.var_ls[i].value == self.var_ls[j].value):
-#                     return False
-#         return True
 
 class Csp(object):
     def __init__(self, name_var_map={}, constraint_funcs=[]):
@@ -212,53 +183,16 @@ class Sudoku(object):
                         box_constraints[box_index].append(var)
                     except KeyError:
                         box_constraints[box_index] = [var]
-            # print(sorted(name_var_map.items()))
 
-            # constraint_funcs = []
             for constraints_map in [row_constraints, col_constraints, box_constraints]:
                 for var_ls in constraints_map.values():
-                    # constraint_funcs.append(AllDiffChecker(var_ls).check)
                     set_variable_neighbours(var_ls)
-            # print(sorted(name_var_map['A1'].neighbours))
             [var.update_domain() for var in name_var_map.values()]
-            # for k, var in sorted(name_var_map.items()):
-                # print(var, sorted(var.neighbours))
-                # print(var, var.domain, var.get_possible_values())
-                # print(var, var.domain)
-                # print('')
-            # print([func() for func in constraint_funcs])
-            # name_var_map['A9'].value = 8
-            # print([func() for func in constraint_funcs])
 
             return Csp(name_var_map, [Variable.not_equal])
         
-        # print(self.puzzle)
         csp = get_csp()
-        # print(csp.name_var_map)
         show_puzzle(csp)
-
-        # print(box_constraints)
-        # print(row_constraints)
-        # print(col_constraints)
-
-        # print(sorted(csp.name_var_map.items()))
-        # print([inspect.getsource(func) for func in csp.constraint_funcs])
-        # def backtracking_search(csp):
-        #     return backtrack([], csp)
-        # def backtrack(assignment, csp):
-        #     if assignment.is_complete():
-        #         return assignment
-        #     var = csp.select_unassigned_var()
-        #     for value in order_domain_values(var, assignment, csp):
-        #         if val.is_consistent_with(assignment):
-        #             assignment.add(var, value)
-        #             inferences = inference(csp, var, value)
-        #             if inferences != False:
-        #                 assignment.add(inferences)
-        #                 result = backtrack(assignment, csp)
-        #                 if result != False:
-        #                     return result
-        #      return False
 
         # self.ans is a list of lists
         # return self.ans
