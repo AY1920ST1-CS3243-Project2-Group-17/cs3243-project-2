@@ -8,11 +8,12 @@ from collections import deque
 
 class Variable(object):
     def __init__(self, name, value=None, domain=None, 
-                 neighbours=None):
+                 pruned=None, neighbours=None):
         self.name = name
         self.value = value
         self.is_filled = True if self.value is not None else False
         self.domain = set() if domain is None else domain
+        self.pruned = set() if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
         self.discarded_domain = []
 
@@ -25,12 +26,12 @@ class Variable(object):
                        for neighbour in self.neighbours)
         return sorted(self.domain, key=comparator)
 
-    def update_init_domain(self):
-        if self.value is not None:
-            self.domain = set()
-        else:
-            [self.domain.discard(neighbour.value) 
-             for neighbour in self.neighbours]
+    # def update_init_domain(self):
+    #     if self.value is not None:
+    #         self.domain = set()
+    #     else:
+    #         [self.domain.discard(neighbour.value) 
+    #          for neighbour in self.neighbours]
     
     def set_value_and_update_neighbours(self, val):
         if not self.is_assigned:
@@ -70,7 +71,8 @@ class Variable(object):
                 or var.value != other.value)
     
     def __repr__(self):
-        return str((self.name, self.value, self.domain))
+        return "'" + self.name + "'"
+        # return str((self.name, self.value, self.domain))
 
 backtrack_id = 0
 class Csp(object):
@@ -313,7 +315,9 @@ class Sudoku(object):
                     row_letter = chr(a + 65)
                     col_index = str(n + 1)
                     name = row_letter + col_index
-                    var = Variable(name, number, set(range(1, 10)))
+                    var = Variable(name, number, 
+                                   set(range(1, 10) if number == None else [number]), 
+                                   set([] if number == None else [number]))
                     name_var_map[name] = var
                     try:
                         row_constraints[row_letter].append(var)
@@ -334,15 +338,19 @@ class Sudoku(object):
             for constraints_map in [row_constraints, col_constraints, box_constraints]:
                 for var_ls in constraints_map.values():
                     set_variable_neighbours(var_ls)
-            [var.update_init_domain() for var in name_var_map.values()]
+            # [var.update_init_domain() for var in name_var_map.values()]
 
             return Csp(name_var_map, [Variable.not_equal])
         
         csp = get_csp()
         Sudoku.show_puzzle(csp)
-        # print('\n'.join([str((v, v.domain)) for k, v in sorted(csp.name_var_map.items())]))
-        print(csp.solve())
-        Sudoku.show_puzzle(csp)
+        # print([(k, list(v.domain)) for k, v in sorted(csp.name_var_map.items())])
+        # print([(k, sorted(list(v.neighbours))) for k, v in sorted(csp.name_var_map.items())])
+        print(sorted([[v, neighbour] for v in csp.name_var_map.values() for neighbour in v.neighbours]))
+                
+        # # print('\n'.join([str((v, v.domain)) for k, v in sorted(csp.name_var_map.items())]))
+        # print(csp.solve())
+        # Sudoku.show_puzzle(csp)
 
         # self.ans is a list of lists
         # return self.ans

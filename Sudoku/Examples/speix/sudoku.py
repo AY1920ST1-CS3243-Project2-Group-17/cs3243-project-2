@@ -8,25 +8,25 @@ numbers = '123456789'
 class Sudoku:
 
     def __init__(self, board):
-        self.variables, self.domains, self.constraints, self.neighbors, self.pruned = list(), dict(), list(), dict(), dict()
+        self.variables, self.domains, self.constraints, self.neighbors, self.pruned = [], {}, [], {}, {}
         self.prepare(board)
 
     def prepare(self, board):
-
         game = list(board)
-
         self.variables = self.combine(characters, numbers)
-
         self.domains = {v: list(range(1, 10)) if game[i] == '0' else [int(game[i])] for i, v in enumerate(self.variables)}
-
         self.pruned = {v: list() if game[i] == '0' else [int(game[i])] for i, v in enumerate(self.variables)}
-
         self.build_constraints()
-
         self.build_neighbors()
+        # print(game)
+        # print(self.variables)
+        # print(sorted(self.domains.items()))
+        # print(sorted(self.pruned.items()))
+        print(sorted(self.constraints))
+        # print(sorted({k: sorted(v) for k, v in self.neighbors.items()}.items()))
+
 
     def build_constraints(self):
-
         blocks = (
             [self.combine(characters, number) for number in numbers] +
             [self.combine(character, numbers) for character in characters] +
@@ -38,10 +38,8 @@ class Sudoku:
             for combination in combinations:
                 if [combination[0], combination[1]] not in self.constraints:
                     self.constraints.append([combination[0], combination[1]])
-        pass
 
     def build_neighbors(self):
-
         for x in self.variables:
             self.neighbors[x] = list()
             for c in self.constraints:
@@ -49,58 +47,45 @@ class Sudoku:
                     self.neighbors[x].append(c[1])
 
     def solved(self):
-
         for v in self.variables:
             if len(self.domains[v]) > 1:
                 return False
-
         return True
 
-    def complete(self, assignment):
+    # def complete(self, assignment):
 
-        for x in self.variables:
-            if len(self.domains[x]) > 1 and x not in assignment:
-                return False
+    #     for x in self.variables:
+    #         if len(self.domains[x]) > 1 and x not in assignment:
+    #             return False
 
-        return True
+    #     return True
 
     def consistent(self, assignment, var, value):
-
         consistent = True
-
         for key, val in assignment.iteritems():
             if val == value and key in self.neighbors[var]:
                 consistent = False
-
         return consistent
 
     def assign(self, var, value, assignment):
-
         assignment[var] = value
-
         self.forward_check(var, value, assignment)
 
     def unassign(self, var, assignment):
-
         if var in assignment:
-
             for (D, v) in self.pruned[var]:
                 self.domains[D].append(v)
-
             self.pruned[var] = []
-
             del assignment[var]
 
     def forward_check(self, var, value, assignment):
-
         for neighbor in self.neighbors[var]:
             if neighbor not in assignment:
                 if value in self.domains[neighbor]:
                     self.domains[neighbor].remove(value)
                     self.pruned[var].append((neighbor, value))
 
-    @staticmethod
-    def constraint(xi, xj): return xi != xj
+    def constraint(self, xi, xj): return xi != xj
 
     @staticmethod
     def combine(alpha, beta):
@@ -119,21 +104,18 @@ class Sudoku:
 
     @staticmethod
     def conflicts(sudoku, var, val):
-
         count = 0
-
         for n in sudoku.neighbors[var]:
             if len(sudoku.domains[n]) > 1 and val in sudoku.domains[n]:
                 count += 1
-
         return count
 
-    def out(self, mode):
+    # def out(self, mode):
 
-        if mode == 'console':
+    #     if mode == 'console':
 
-            for var in self.variables:
-                sys.stdout.write(str(self.domains[var][0]))
+    #         for var in self.variables:
+    #             sys.stdout.write(str(self.domains[var][0]))
 
-        elif mode == 'file':
-            return
+    #     elif mode == 'file':
+    #         return
