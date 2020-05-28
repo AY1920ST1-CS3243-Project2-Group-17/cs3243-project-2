@@ -14,6 +14,7 @@ class Variable(object):
         self.domain = set() if domain is None else domain
         self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
+        self.backup_domain = set()
 
     def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
@@ -26,12 +27,15 @@ class Variable(object):
                 return False
         return True
 
-    # def forward_check(self, value):
-    #     for neighbour in self.neighbours:
-    #         if value in neighbour.domain:
-    #             neighbour.domain.discard(value)
-    #             self.pruned[neighbour] = value
+    def forward_check(self, value):
+        for neighbour in self.neighbours:
+            if value in neighbour.domain:
+                neighbour.domain.discard(value)
+                self.pruned[neighbour] = value
    
+    def __hash__(self):
+        return hash(self.name)
+
     def __repr__(self):
         return self.name + ', ' + str(self.value)
 
@@ -52,10 +56,14 @@ class Csp(object):
         if not self.unassigned_vars:
             return True
         var = self.select_unassigned_variable()
+        init_var = var
         for value in var.order_domain_values():
-            if var.is_consistent(value):
+            if var.value is None and var.is_consistent(value):
                 curr_domain = var.domain.copy()
+                assert var not in self.assigned_vars
+                assert var in self.unassigned_vars
                 self.assign(var, value)
+                assert var in self.assigned_vars
                 inferred_as_possible, original_var_domain_map = self.ac3(var)
                 if inferred_as_possible:
                     for neighbour in var.neighbours:
@@ -64,13 +72,20 @@ class Csp(object):
                     result = self.backtrack()
                     if result:
                         return result
-                for var, domain in original_var_domain_map.items():
-                    var.domain = domain
+                for var2, domain in original_var_domain_map.items():
+                    var2.domain = domain
+                assert var is init_var
+                assert var not in self.unassigned_vars
+                assert var in self.assigned_vars
                 self.unassign(var)
+                assert var in self.unassigned_vars
+                assert var.domain == curr_domain
         return False
 
     def assign(self, var, value):
         var.value = value
+        var.backup_domain = var.domain
+        var.domain = set([value])
         # var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
@@ -79,6 +94,8 @@ class Csp(object):
         # [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
         # var.pruned = {}
         var.value = None
+        var.domain = var.backup_domain
+        var.backup_domain = set()
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
 
