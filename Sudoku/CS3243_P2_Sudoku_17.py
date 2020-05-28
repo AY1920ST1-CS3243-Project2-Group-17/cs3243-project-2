@@ -14,6 +14,8 @@ class Variable(object):
         self.domain = set() if domain is None else domain
         self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
+        self.EMPTY_SET = set()
+        self.backup_domain = self.EMPTY_SET
 
     def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
@@ -63,6 +65,8 @@ class Csp(object):
 
     def assign(self, var, value):
         var.value = value
+        # var.backup_domain = var.domain
+        # var.domain = set([value])
         var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
@@ -70,6 +74,8 @@ class Csp(object):
     def unassign(self, var):
         [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
         var.pruned = {}
+        # var.domain = var.backup_domain
+        # var.backup_domain = var.EMPTY_SET
         var.value = None
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
