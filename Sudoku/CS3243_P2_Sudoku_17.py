@@ -15,33 +15,32 @@ class Variable(object):
         self.pruned = [] if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
-    def add_neighbour(self, other):
-        self.neighbours.add(other)
-
     def order_domain_values(self):
-        if len(self.domain) == 1:
-            return list(self.domain)
-        return sorted(self.domain, key=lambda val: self.conflicts(val))
+        return sorted(self.domain, key=lambda val:\
+                      sum(1 if val in neighbour.domain else 0 
+                          for neighbour in self.neighbours))
 
-    def conflicts(self, val):
-        count = 0
-        for n in self.neighbours:
-            if len(n.domain) > 1 and val in n.domain:
-                count += 1
-        return count
+    def is_consistent(self, value):
+        for neighbour in self.neighbours:
+            if neighbour.value == value:
+                return False
+        return True
 
-    def is_assigned(self):
-        return self.value is not None and self.value != 0
+    def forward_check(self, value):
+        for neighbour in self.neighbours:
+            if value in neighbour.domain:
+                neighbour.domain.discard(value)
+                self.pruned.append((neighbour, value))
     
     def __repr__(self):
-        return self.name
+        return self.name + ', ' + str(self.value)
 
 class Csp(object):
     def __init__(self, name_var_map={}):
         self.name_var_map = name_var_map
         self.assigned_vars, self.unassigned_vars = set(), set()
         [(self.assigned_vars.add(var) 
-          if var.is_assigned() else self.unassigned_vars.add(var))
+          if var.value is not None else self.unassigned_vars.add(var))
          for var in self.name_var_map.values()]
         self.constraints = [(v, neighbour) for v in self.name_var_map.values()
                             for neighbour in v.neighbours]
@@ -50,11 +49,11 @@ class Csp(object):
         return min(self.unassigned_vars, key=lambda var: len(var.domain))
 
     def backtrack(self):
-        if self.is_solved():
+        if not self.unassigned_vars:
             return True
         var = self.select_unassigned_variable()
         for value in var.order_domain_values():
-            if self.consistent(var, value):
+            if var.is_consistent(value):
                 self.assign(var, value)
                 result = self.backtrack()
                 if result:
@@ -64,62 +63,42 @@ class Csp(object):
 
     def assign(self, var, value):
         var.value = value
-        self.forward_check(var, value)
+        var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
 
     def unassign(self, var):
-        if var.is_assigned():
-            for (D, v) in var.pruned: 
-                D.domain.add(v)
-            var.pruned = []
-            var.value = None
-            self.unassigned_vars.add(var)
-            self.assigned_vars.remove(var)
-
-    def forward_check(self, var, value):
-        for n in var.neighbours:
-            if not n.is_assigned():
-                if value in n.domain:
-                    n.domain.discard(value)
-                    var.pruned.append((n, value))
-
-    def consistent(self, var, value):
-        for neighbour in var.neighbours:
-            if neighbour.value == value:
-                return False
-        return True
-        # for variable in self.name_var_map.values():
-        #     val = var.value
-        #     if val == value and variable in var.neighbours:
-        #         return False
-        # return True
+        [neighbour.domain.add(value) for (neighbour, value) in var.pruned]
+        var.pruned = []
+        var.value = None
+        self.unassigned_vars.add(var)
+        self.assigned_vars.remove(var)
 
     def ac3(self):
         def revise(xi, xj):
             revised = False
-            for x in xi.domain.copy():
-                if not any([x != y for y in xj.domain]):
-                    xi.domain.discard(x)
+            updated_domain = set()
+            for x in xi.domain:
+                if any(x != y for y in xj.domain):
+                    updated_domain.add(x)
+                else:
                     revised = True
+            if revised:
+                xi.domain = updated_domain
             return revised
 
         queue = deque(self.constraints)
         while queue:
             xi, xj = queue.popleft()
             if revise(xi, xj):
-                if len(xi.domain) == 0:
+                if not xi.domain:
                     return False
-                for xk in xi.neighbours:
-                    if xk != xi:
-                        queue.append((xk, xi))
+                [queue.append((xk, xi)) for xk in xi.neighbours 
+                 if xk != xi]
         return True
 
     def solve(self):
-        return self.ac3() and (self.is_solved() or self.backtrack())
-
-    def is_solved(self):
-        return len(self.unassigned_vars) == 0
+        return self.ac3() and (not self.unassigned_vars or self.backtrack())
 
 class Sudoku(object):
     def __init__(self, puzzle):
@@ -127,15 +106,11 @@ class Sudoku(object):
         self.puzzle = puzzle # self.puzzle is a list of lists
         self.ans = copy.deepcopy(puzzle) # self.ans is a list of lists
 
-    @staticmethod
-    def show_puzzle(csp,  show_log=True):
-        if show_log:
-            puzzle = [[None for i in range(9)] for i in range(9)]
-            for k, v in csp.name_var_map.items():
-                puzzle[ord(k[0])-65][int(k[1])-1] = v.value if v.value is not None else 0
-            for row in puzzle:
-                print(' '.join(str(i) for i in row))
-            # print('')
+    def get_puzzle(self, csp):
+        for k, v in csp.name_var_map.items():
+            self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
+                                                   else 0)
+        return self.ans
 
     def solve(self):
         # TODO: Write your code here
@@ -143,25 +118,24 @@ class Sudoku(object):
         def set_variable_neighbours(var_ls):
             for i in range(len(var_ls)-1):
                 for j in range(i+1, len(var_ls)):
-                    # print(type(var_ls[i]))
-                    var_ls[i].add_neighbour(var_ls[j])
-                    var_ls[j].add_neighbour(var_ls[i])
+                    var_ls[i].neighbours.add(var_ls[j])
+                    var_ls[j].neighbours.add(var_ls[i])
 
         def get_csp():
             name_var_map = {}
-            row_constraints = {}
-            col_constraints = {}
-            box_constraints = {}
+            row_constraints, col_constraints, box_constraints = {}, {}, {}
             for a, line in enumerate(self.puzzle):
                 for n, number in enumerate(line):
                     number = number if number != 0 else None
-                    row_letter = chr(a + 65)
-                    col_index = str(n + 1)
+                    row_letter, col_index = chr(a + 65), str(n + 1)
                     name = row_letter + col_index
                     var = Variable(name, number, 
-                                   set(range(1, 10) if number == None else [number]), 
-                                   [] if number == None else [number])
+                                   set(range(1, 10) if number is None else [number]), 
+                                   [] if number is None else [number])
                     name_var_map[name] = var
+                    box_row, box_col = a // 3, n // 3
+                    box_index = box_row * 3 + box_col
+                    
                     try:
                         row_constraints[row_letter].append(var)
                     except KeyError:
@@ -170,23 +144,20 @@ class Sudoku(object):
                         col_constraints[col_index].append(var)
                     except KeyError:
                         col_constraints[col_index] = [var]
-                    box_row = a // 3
-                    box_col = n // 3
-                    box_index = box_row * 3 + box_col
                     try:
                         box_constraints[box_index].append(var)
                     except KeyError:
                         box_constraints[box_index] = [var]
 
-            for constraints_map in [row_constraints, col_constraints, box_constraints]:
-                for var_ls in constraints_map.values():
-                    set_variable_neighbours(var_ls)
+                    [set_variable_neighbours(var_ls) 
+                     for constraints_map in [row_constraints, col_constraints, box_constraints]
+                     for var_ls in constraints_map.values()]
 
             return Csp(name_var_map)
         
         csp = get_csp()
-        print(csp.solve())
-        Sudoku.show_puzzle(csp)      
+        csp.solve()
+        return self.get_puzzle(csp)
 
         # self.ans is a list of lists
         # return self.ans

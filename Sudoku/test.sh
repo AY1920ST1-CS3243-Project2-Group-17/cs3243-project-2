@@ -26,4 +26,4 @@ if [[ -f $output_file_path ]]; then
     touch $output_file_path
 fi
 
-python2.7 CS3243_P2_Sudoku_XX_draft2.py $input_file_path $output_file_path
+python2.7 CS3243_P2_Sudoku_17.py $input_file_path $output_file_path
