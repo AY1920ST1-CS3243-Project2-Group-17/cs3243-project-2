@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Current File",
-            "args": ["800000000003600000070090200050007000000045700000100030001000068008500010090000400"],
+            // "args": ["800000000003600000070090200050007000000045700000100030001000068008500010090000400"],
             // "args": ["Sudoku/public_tests_p2_sudoku/input1.txt", "Sudoku/my_outputs/output_1.txt"],
             "type": "python",
             "request": "launch",
