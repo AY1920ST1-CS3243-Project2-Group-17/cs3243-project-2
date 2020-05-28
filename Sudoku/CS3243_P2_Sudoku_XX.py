@@ -36,7 +36,7 @@ class Variable(object):
         self.value = val
         for neighbour in self.neighbours:
             neighbour.domain.discard(val)
-        [self.discard_from_domain(i) for i in self.domain.copy() if i != val]
+        [self.discard_from_domain(i) for i in self.domain.copy()]
         self.is_filled = True
 
     def unset_value_and_update_neighbours(self, val):
@@ -124,12 +124,13 @@ class Csp(object):
             if all(self.satisfies_constraints_between(var, neighbour, value) 
                    for neighbour in var.neighbours):
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' satisfies constraints for ' + str(var))
+                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
+                self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
                 var.set_value_and_update_neighbours(value)
                 self.unassigned_vars.discard(var)
                 self.assigned_vars.add(var)
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
-                self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
-                if self.ac_3(var):
+                is_arc_consistent = self.ac_3(var)
+                if is_arc_consistent:
                     self.confirm_inference()
                     self.print_log('ID' + str(curr_id) + ': Arc consistency maintained for ' + str(var) + ' with value ' + str(value))
                     self.print_log('ID' + str(curr_id) + ' calling ' + str(backtrack_id + 1))
@@ -141,7 +142,10 @@ class Csp(object):
                 else:
                     self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
                 var.unset_value_and_update_neighbours(value)
-                self.undo_inference()
+                if not is_arc_consistent:
+                    var.domain.discard(value)
+                # else:
+                #     self.undo_inference()
                 self.assigned_vars.discard(var)
                 self.unassigned_vars.add(var)
                 self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
@@ -185,16 +189,18 @@ class Csp(object):
 
         def revise(xi, xj):
             revised = False
+                
             for x in xi.domain.copy():
                 # if xi.name == 'I9' or xj.name == 'I9':
-                #     print('Checking xi: ' + str(xi) + ' with domain ' + str(xi.domain) + ' and value ' + str(x)
-                #         + ' when compared to xj: ' +  str(xj) + ' with domain ' + str(xj.domain))
                 if not any(self.satisfies_constraints_between(xi, xj, x, y) 
-                        for y in (xj.domain if not xj.is_filled else [xj.value])):
-                    self.print_log(str(x) + ' discarded from xi: ' + str(xi) + ' when compared to xj: ' +  str(xj))
+                           for y in (xj.domain if not len(xj.domain) == 0 else [xj.value])):
+                    print(str(x) + ' discarded from xi: ' + str(xi) + ' when compared to xj: ' +  str(xj))
                     xi.discard_from_domain(x)
                     self.variables_with_discarded_domain_vals.append(xi)
                     revised = True
+                elif len(xj.domain) != 0:
+                    print('Arc consistency maintained between xi: ' + str(xi) + ' with value ' + str(x)
+                    + ' and xj: ' +  str(xj))
             return revised
 
         while queue:
