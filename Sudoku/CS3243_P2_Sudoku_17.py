@@ -59,13 +59,9 @@ class Csp(object):
         for value in var.order_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
-                inferred_as_possible, original_var_domain_map = self.ac3(var)
-                if inferred_as_possible:
-                    result = self.backtrack()
-                    if result:
-                        return result
-                for modified_var, domain in original_var_domain_map.items():
-                    modified_var.domain = domain
+                result = self.backtrack()
+                if result:
+                    return result
                 self.unassign(var)
         return False
 
