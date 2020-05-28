@@ -22,7 +22,7 @@ class Sudoku:
         # print(self.variables)
         # print(sorted(self.domains.items()))
         # print(sorted(self.pruned.items()))
-        print(sorted(self.constraints))
+        # print(sorted(self.constraints))
         # print(sorted({k: sorted(v) for k, v in self.neighbors.items()}.items()))
 
 

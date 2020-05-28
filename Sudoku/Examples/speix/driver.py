@@ -25,19 +25,29 @@ def ac3(sudoku):
                     queue.append([xk, xi])
     return True
 
+count = 0
 def backtrack(assignment, sudoku):
+    global count
+    print('')
+    count += 1
+    if count > 10:
+        exit()
     if len(assignment) == len(sudoku.variables):
         return assignment
+    print_sudoku(sudoku, assignment)
     var = select_unassigned_variable(assignment, sudoku)
+    print(str(var) + ' selected.')
     for value in order_domain_values(sudoku, var):
         if sudoku.consistent(assignment, var, value):
+            print(str(var) + ' consistent with ' + str(value))
             sudoku.assign(var, value, assignment)
+            print('Assigned ' + str(value) + ' to ' + str(var))
             result = backtrack(assignment, sudoku)
             if result:
                 return result
             sudoku.unassign(var, assignment)
+            print('Unassigned ' + str(value) + ' to ' + var)
     return False
-
 
 # Most Constrained Variable heuristic
 # Pick the unassigned variable that has fewest legal values remaining.
@@ -50,8 +60,15 @@ def select_unassigned_variable(assignment, sudoku):
 def order_domain_values(sudoku, var):
     if len(sudoku.domains[var]) == 1:
         return sudoku.domains[var]
-
     return sorted(sudoku.domains[var], key=lambda val: sudoku.conflicts(sudoku, var, val))
+
+def print_sudoku(sudoku, assignment):
+    out = ''
+    keys = sorted(sudoku.variables)
+    for n, key in enumerate(keys):
+        out += str(assignment.get(key, 0)) + (' ' if n != len(keys) else '') \
+               + ('\n' if (n+1)%9 == 0 and n != len(keys)-1 else '')
+    print(out)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('board')

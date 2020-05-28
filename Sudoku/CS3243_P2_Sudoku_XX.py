@@ -20,11 +20,41 @@ class Variable(object):
     def add_neighbour(self, other):
         self.neighbours.add(other)
 
-    def get_ordered_domain_values(self):
-        def comparator(val):
-            return sum(1 if val in neighbour.domain else 0 
-                       for neighbour in self.neighbours)
-        return sorted(self.domain, key=comparator)
+    # def get_ordered_domain_values(self):
+    #     def comparator(val):
+    #         return sum(1 if val in neighbour.domain else 0 
+    #                    for neighbour in self.neighbours)
+    #     return sorted(self.domain, key=comparator)
+    
+    def order_domain_values(self):
+        # if len(self.domain) == 1:
+        #     return self.domain
+        return sorted(self.domain, key=lambda val: self.conflicts(val))
+
+    def conflicts(self, val):
+        count = 0
+        for n in self.neighbours:
+            if len(n.domain) > 1 and val in n.domain:
+                count += 1
+        return count
+
+    # def consistent(self, value):
+    #     for n in self.neighbours:
+    #         if n.value == value:
+    #             return False
+    #     return True
+
+    # def conflicts(self, val):
+    #     count = 0
+    #     for n in self.neighbours:
+    #         if len(n.domain) > 1 and val in n.domain:
+    #             count += 1
+    #     return count
+            
+        # for key, val in assignment.iteritems():
+        #     if val == value and key in self.neighbours:
+        #         consistent = False
+        # return consistent
 
     # def update_init_domain(self):
     #     if self.value is not None:
@@ -92,61 +122,41 @@ class Csp(object):
         if self.show_log:
             print(str)
 
-    def select_unassigned_var(self):
-        sorted_unassigned_vars = sorted(self.unassigned_vars, key=lambda var: len(var.domain))
-        min_domain_len = len(sorted_unassigned_vars[0].domain)
-        tie_breakers = []
-        for var in sorted_unassigned_vars:
-            if len(var.domain) > min_domain_len:
-                break
-            tie_breakers.append(var)
-        def tie_breaker_comparator(var):
-            return sum(1 if any(i in neighbour.domain for i in var.domain) else 0 
-                       for neighbour in var.neighbours)
-        return min(tie_breakers, key=tie_breaker_comparator)        
-
-    def backtrack(self):
-        if self.is_solved():
-            return True
-        var = self.select_unassigned_var()
-        for value in var.get_ordered_domain_values():
-            if all(self.satisfies_constraints_between(var, neighbour, value) 
-                   for neighbour in var.neighbours):
-                var.set_value_and_update_neighbours(value)
-                self.unassigned_vars.discard(var)
-                self.assigned_vars.add(var)
-                result = self.backtrack()
-                if result:
-                    return result
-                var.unset_value_and_update_neighbours(value)
-                self.assigned_vars.discard(var)
-                self.unassigned_vars.add(var)
-        return False
+    def select_unassigned_variable(self):
+        return min(self.unassigned_vars, key=lambda var: len(var.domain))
 
     def ac3(self):
         def revise(xi, xj):
             revised = False
-            for x in xi.domain.copy():
-                if not any (self.satisfies_constraints_between(xi, xj, x, y) 
-                            for y in xj.domain):
-                    xi.domain.discard(x)
+            for x in sudoku.domains[xi]:
+                if not any([sudoku.constraint(x, y) for y in sudoku.domains[xj]]):
+                    sudoku.domains[xi].remove(x)
                     revised = True
             return revised
 
-        queue = deque()
-        for v in self.name_var_map.values():
-            for neighbour in v.neighbours:
-                queue.append((v, neighbour))
-            
+        queue = deque(sudoku.constraints)
         while queue:
             xi, xj = queue.popleft()
             if revise(xi, xj):
-                if not xi.domain:
+                if len(xi.domain) == 0:
                     return False
                 for xk in xi.neighbours:
                     if xk != xi:
                         queue.append((xk, xi))
         return True
+
+    # def select_unassigned_var(self):
+    #     sorted_unassigned_vars = sorted(self.unassigned_vars, key=lambda var: len(var.domain))
+    #     min_domain_len = len(sorted_unassigned_vars[0].domain)
+    #     tie_breakers = []
+    #     for var in sorted_unassigned_vars:
+    #         if len(var.domain) > min_domain_len:
+    #             break
+    #         tie_breakers.append(var)
+    #     def tie_breaker_comparator(var):
+    #         return sum(1 if any(i in neighbour.domain for i in var.domain) else 0 
+    #                    for neighbour in var.neighbours)
+    #     return min(tie_breakers, key=tie_breaker_comparator)        
 
     def solve(self):
         return self.ac3() or self.is_solved() or self.backtrack()
