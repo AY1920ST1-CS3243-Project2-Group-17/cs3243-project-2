@@ -12,7 +12,7 @@ class Variable(object):
         self.name = name
         self.value = value
         self.domain = set() if domain is None else domain
-        self.pruned = [] if pruned is None else pruned
+        self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
     def order_domain_values(self):
@@ -26,12 +26,12 @@ class Variable(object):
                 return False
         return True
 
-    # def forward_check(self, value):
-    #     for neighbour in self.neighbours:
-    #         if value in neighbour.domain:
-    #             neighbour.domain.discard(value)
-    #             self.pruned.append((neighbour, value))
-    
+    def forward_check(self, value):
+        for neighbour in self.neighbours:
+            if value in neighbour.domain:
+                neighbour.domain.discard(value)
+                self.pruned[neighbour] = value
+   
     def __repr__(self):
         return self.name + ', ' + str(self.value)
 
@@ -53,50 +53,35 @@ class Csp(object):
             return True
         var = self.select_unassigned_variable()
         for value in var.order_domain_values():
-            inferences = []
             if var.is_consistent(value):
+                curr_domain = var.domain.copy()
                 self.assign(var, value)
-                inferences = self.get_inferences(var)
-                if inferences is not False:
-                    self.add_inferences_to_assignment(inferences)
+                inferred_as_possible, original_var_domain_map = self.ac3(var)
+                if inferred_as_possible:
                     result = self.backtrack()
                     if result:
                         return result
+                for var, domain in original_var_domain_map.items():
+                    var.domain = domain
                 self.unassign(var)
-            self.remove_inferences_from_assignment(var, inferences)
         return False
 
     def assign(self, var, value):
         var.value = value
-        # var.forward_check(value)
+        var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
 
     def unassign(self, var):
-        [neighbour.domain.add(value) for (neighbour, value) in var.pruned]
-        var.pruned = []
+        [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
+        var.pruned = {}
         var.value = None
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
 
-    def get_inferences(self, var):      
-        if not self.ac3():
-            return False
-        # print('hello')
-        return [(var, list(var.domain)[0]) for var in self.unassigned_vars 
-                if len(var.domain) == 1]
-    
-    def add_inferences_to_assignment(self, inferences):
-        for var, value in inferences:
-            var.value = value           
-                
-    def remove_inferences_from_assignment(self, var, inferences):
-        if inferences is not False:
-            for var, value in inferences:
-                var.value = None     
-
-    def ac3(self):
-        def revise(xi, xj):
+    def ac3(self, var=None):
+        original_var_domain_map = {}
+        def revise(xi, xj, discarded_var_domain_map):
             revised = False
             updated_domain = set()
             for x in xi.domain:
@@ -105,26 +90,33 @@ class Csp(object):
                 else:
                     revised = True
             if revised:
+                try:
+                    original_var_domain_map[xi]
+                except KeyError:
+                    original_var_domain_map[xi] = xi.domain
                 xi.domain = updated_domain
-            return revised
+            return revised, original_var_domain_map
 
         queue = deque()
         # queue = deque(self.constraints)
-        for var in self.unassigned_vars:
+        for var in (self.unassigned_vars if var is None else [var]):
             for neighbour in var.neighbours:
-                queue.append((var, neighbour))       
+                queue.append((var, neighbour))
+                queue.append((neighbour, var))    
 
         while queue:
             xi, xj = queue.popleft()
-            if revise(xi, xj):
+            revised, original_var_domain_map = revise(xi, xj, original_var_domain_map)
+            if revised:
                 if not xi.domain:
-                    return False
+                    return False, original_var_domain_map
                 [queue.append((xk, xi)) for xk in xi.neighbours 
                  if xk != xi]
-        return True
+        return True, original_var_domain_map
 
     def solve(self):
-        return self.ac3() and (not self.unassigned_vars or self.backtrack())
+        inferred_as_possible, original_domain_map = self.ac3()
+        return inferred_as_possible and (not self.unassigned_vars or self.backtrack())
 
 class Sudoku(object):
     def __init__(self, puzzle):
