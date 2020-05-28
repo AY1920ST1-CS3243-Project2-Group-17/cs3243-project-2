@@ -1,6 +1,5 @@
 import sys
 import copy
-import inspect
 from collections import deque
 
 # Running script: given code can be run with the command:
