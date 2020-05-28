@@ -20,7 +20,7 @@ class SudokuSolver:
         
     # initializes assignment and var_domain 
     def load_sudoku_data(self, puzzle_num):        
-        fname = 'public_tests_p2_sudoku/input' + puzzle_num + '.txt'
+        fname = 'Sudoku/public_tests_p2_sudoku/input' + puzzle_num + '.txt'
         # fname = 'puz-'+ puzzle_num + '.txt'
         with open(fname) as f:
             content = f.readlines()

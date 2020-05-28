@@ -26,11 +26,11 @@ class Variable(object):
                 return False
         return True
 
-    def forward_check(self, value):
-        for neighbour in self.neighbours:
-            if value in neighbour.domain:
-                neighbour.domain.discard(value)
-                self.pruned.append((neighbour, value))
+    # def forward_check(self, value):
+    #     for neighbour in self.neighbours:
+    #         if value in neighbour.domain:
+    #             neighbour.domain.discard(value)
+    #             self.pruned.append((neighbour, value))
     
     def __repr__(self):
         return self.name + ', ' + str(self.value)
@@ -53,17 +53,22 @@ class Csp(object):
             return True
         var = self.select_unassigned_variable()
         for value in var.order_domain_values():
+            inferences = []
             if var.is_consistent(value):
                 self.assign(var, value)
-                result = self.backtrack()
-                if result:
-                    return result
+                inferences = self.get_inferences(var)
+                if inferences is not False:
+                    self.add_inferences_to_assignment(inferences)
+                    result = self.backtrack()
+                    if result:
+                        return result
                 self.unassign(var)
+            self.remove_inferences_from_assignment(var, inferences)
         return False
 
     def assign(self, var, value):
         var.value = value
-        var.forward_check(value)
+        # var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
 
@@ -73,6 +78,22 @@ class Csp(object):
         var.value = None
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
+
+    def get_inferences(self, var):      
+        if not self.ac3():
+            return False
+        # print('hello')
+        return [(var, list(var.domain)[0]) for var in self.unassigned_vars 
+                if len(var.domain) == 1]
+    
+    def add_inferences_to_assignment(self, inferences):
+        for var, value in inferences:
+            var.value = value           
+                
+    def remove_inferences_from_assignment(self, var, inferences):
+        if inferences is not False:
+            for var, value in inferences:
+                var.value = None     
 
     def ac3(self):
         def revise(xi, xj):
@@ -87,7 +108,12 @@ class Csp(object):
                 xi.domain = updated_domain
             return revised
 
-        queue = deque(self.constraints)
+        queue = deque()
+        # queue = deque(self.constraints)
+        for var in self.unassigned_vars:
+            for neighbour in var.neighbours:
+                queue.append((var, neighbour))       
+
         while queue:
             xi, xj = queue.popleft()
             if revise(xi, xj):
@@ -110,6 +136,8 @@ class Sudoku(object):
         for k, v in csp.name_var_map.items():
             self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
                                                    else 0)
+        for row in self.ans:
+            print(' '.join(str(i) for i in row))
         return self.ans
 
     def solve(self):
@@ -130,8 +158,7 @@ class Sudoku(object):
                     row_letter, col_index = chr(a + 65), str(n + 1)
                     name = row_letter + col_index
                     var = Variable(name, number, 
-                                   set(range(1, 10) if number is None else [number]), 
-                                   [] if number is None else [number])
+                                   set(range(1, 10) if number is None else [number]))
                     name_var_map[name] = var
                     box_row, box_col = a // 3, n // 3
                     box_index = box_row * 3 + box_col
