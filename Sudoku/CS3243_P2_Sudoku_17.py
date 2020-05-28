@@ -12,7 +12,7 @@ class Variable(object):
         self.name = name
         self.value = value
         self.domain = set() if domain is None else domain
-        self.pruned = [] if pruned is None else pruned
+        self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
     def order_domain_values(self):
@@ -30,7 +30,7 @@ class Variable(object):
         for neighbour in self.neighbours:
             if value in neighbour.domain:
                 neighbour.domain.discard(value)
-                self.pruned.append((neighbour, value))
+                self.pruned[neighbour] = value
     
     def __repr__(self):
         return self.name + ', ' + str(self.value)
@@ -68,8 +68,8 @@ class Csp(object):
         self.unassigned_vars.remove(var)
 
     def unassign(self, var):
-        [neighbour.domain.add(value) for (neighbour, value) in var.pruned]
-        var.pruned = []
+        [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
+        var.pruned = {}
         var.value = None
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
@@ -130,8 +130,7 @@ class Sudoku(object):
                     row_letter, col_index = chr(a + 65), str(n + 1)
                     name = row_letter + col_index
                     var = Variable(name, number, 
-                                   set(range(1, 10) if number is None else [number]), 
-                                   [] if number is None else [number])
+                                   set(range(1, 10) if number is None else [number]))
                     name_var_map[name] = var
                     box_row, box_col = a // 3, n // 3
                     box_index = box_row * 3 + box_col
