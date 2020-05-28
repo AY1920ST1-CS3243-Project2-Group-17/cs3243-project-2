@@ -4,9 +4,7 @@ import sys
 characters = 'ABCDEFGHI'
 numbers = '123456789'
 
-
 class Sudoku:
-
     def __init__(self, board):
         self.variables, self.domains, self.constraints, self.neighbors, self.pruned = [], {}, [], {}, {}
         self.prepare(board)
@@ -24,15 +22,12 @@ class Sudoku:
         # print(sorted(self.pruned.items()))
         # print(sorted(self.constraints))
         # print(sorted({k: sorted(v) for k, v in self.neighbors.items()}.items()))
-
-
     def build_constraints(self):
         blocks = (
             [self.combine(characters, number) for number in numbers] +
             [self.combine(character, numbers) for character in characters] +
             [self.combine(character, number) for character in ('ABC', 'DEF', 'GHI') for number in ('123', '456', '789')]
         )
-
         for block in blocks:
             combinations = self.permutate(block)
             for combination in combinations:

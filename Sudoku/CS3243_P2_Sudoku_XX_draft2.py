@@ -13,7 +13,7 @@ class Variable(object):
         self.value = value
         # self.is_filled = True if self.value is not None else False
         self.domain = set() if domain is None else domain
-        self.pruned = set() if pruned is None else pruned
+        self.pruned = [] if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
         # self.discarded_domain = []
 
@@ -79,7 +79,7 @@ class Variable(object):
         # return str((self.name, self.value, self.domain))
 
 # backtrack_id = 0
-count = 0
+# count = 0
 class Csp(object):
     def __init__(self, name_var_map={}, constraint_funcs=[]):
         self.name_var_map = name_var_map
@@ -92,7 +92,7 @@ class Csp(object):
         self.constraints = [(v, neighbour) for v in self.name_var_map.values()
                             for neighbour in v.neighbours]
         # self.constraint_funcs = constraint_funcs
-        self.pruned_variables = []
+        # self.pruned_variables = []
         # self.variables_with_discarded_domain_vals = []
         self.show_log = True
     
@@ -116,31 +116,34 @@ class Csp(object):
     # def select_unassigned_variable(self):
     #     return min(self.unassigned_vars, key=lambda var: len(var.domain))
 
+    # def select_unassigned_variable(self):
+    #     unassigned = sorted([v for v in self.name_var_map.values() if not v.is_assigned()])
+    #     return min(unassigned, key=lambda var: len(var.domain))
     def select_unassigned_variable(self):
-        unassigned = sorted([v for v in self.name_var_map.values() if not v.is_assigned()])
+        unassigned = sorted([v for v in self.name_var_map.values() if not v.is_assigned()], key=lambda var: var.name)
         return min(unassigned, key=lambda var: len(var.domain))
 
     def backtrack(self):
-        global count
-        print('')
-        count += 1
+        # global count
+        # print('')
+        # count += 1
         # if count > 10:
         #     exit()
         if self.is_solved():
             return True
-        Sudoku.show_puzzle(self)
+        # Sudoku.show_puzzle(self)
         var = self.select_unassigned_variable()
-        print(str(var) + ' selected.')
+        # print(str(var) + ' selected.')
         for value in var.order_domain_values():
             if self.consistent(var, value):
-                print(str(var) + ' consistent with ' + str(value))
+                # print(str(var) + ' consistent with ' + str(value))
                 self.assign(var, value)
-                print('Assigned ' + str(value) + ' to ' + str(var))
+                # print('Assigned ' + str(value) + ' to ' + str(var))
                 result = self.backtrack()
                 if result:
                     return result
                 self.unassign(var)
-                print('Unassigned ' + str(value) + ' to ' + str(var))
+                # print('Unassigned ' + str(value) + ' to ' + str(var))
         return False
 
     # def assign(self, var, value, assignment):
@@ -161,7 +164,6 @@ class Csp(object):
     #                 self.domains[neighbor].remove(value)
     #                 self.pruned[var].append((neighbor, value))
 
-
     def assign(self, var, value):
         var.value = value
         self.forward_check(var, value)
@@ -170,11 +172,10 @@ class Csp(object):
 
     def unassign(self, var):
         if var.is_assigned():
-            for v in self.pruned_variables: 
-                for i in v.pruned:
-                    v.domain.add(i)
-                v.pruned = set()
-            self.pruned_variables = []
+            for (D, v) in var.pruned: 
+                D.domain.add(v)
+            var.pruned = []
+            # self.pruned_variables = []
             var.value = None
             self.unassigned_vars.add(var)
             self.assigned_vars.remove(var)
@@ -184,8 +185,40 @@ class Csp(object):
             if not n.is_assigned():
                 if value in n.domain:
                     n.domain.discard(value)
-                    var.pruned.add(value)
-                    self.pruned_variables.append(var)
+                    var.pruned.append((n, value))
+
+    # def forward_check(self, var, value):
+    #     for n in var.neighbours:
+    #         if not n.is_assigned():
+    #             if value in n.domain:
+    #                 n.domain.discard(value)
+    #                 assert type(value) == int
+    #                 var.pruned.append((n, value))
+
+    # def assign(self, var, value):
+    #     var.value = value
+    #     self.forward_check(var, value)
+    #     self.assigned_vars.add(var)
+    #     self.unassigned_vars.remove(var)
+
+    # def unassign(self, var):
+    #     if var.is_assigned():
+    #         for v in self.pruned_variables: 
+    #             for i in v.pruned:
+    #                 v.domain.add(i)
+    #             v.pruned = set()
+    #         self.pruned_variables = []
+    #         var.value = None
+    #         self.unassigned_vars.add(var)
+    #         self.assigned_vars.remove(var)
+
+    # def forward_check(self, var, value):
+    #     for n in var.neighbours:
+    #         if not n.is_assigned():
+    #             if value in n.domain:
+    #                 n.domain.discard(value)
+    #                 var.pruned.add(value)
+    #                 self.pruned_variables.append(var)
                     # self.pruned[var].append((neighbor, value))
 
     # def backtrack(self):
@@ -308,7 +341,7 @@ class Sudoku(object):
                     name = row_letter + col_index
                     var = Variable(name, number, 
                                    set(range(1, 10) if number == None else [number]), 
-                                   set([] if number == None else [number]))
+                                   [] if number == None else [number])
                     name_var_map[name] = var
                     try:
                         row_constraints[row_letter].append(var)

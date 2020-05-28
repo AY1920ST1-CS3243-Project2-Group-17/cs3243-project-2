@@ -25,28 +25,18 @@ def ac3(sudoku):
                     queue.append([xk, xi])
     return True
 
-count = 0
 def backtrack(assignment, sudoku):
-    global count
-    print('')
-    count += 1
-    if count > 10:
-        exit()
     if len(assignment) == len(sudoku.variables):
         return assignment
-    print_sudoku(sudoku, assignment)
+    # print_sudoku(sudoku, assignment)
     var = select_unassigned_variable(assignment, sudoku)
-    print(str(var) + ' selected.')
     for value in order_domain_values(sudoku, var):
         if sudoku.consistent(assignment, var, value):
-            print(str(var) + ' consistent with ' + str(value))
             sudoku.assign(var, value, assignment)
-            print('Assigned ' + str(value) + ' to ' + str(var))
             result = backtrack(assignment, sudoku)
             if result:
                 return result
             sudoku.unassign(var, assignment)
-            print('Unassigned ' + str(value) + ' to ' + var)
     return False
 
 # Most Constrained Variable heuristic
@@ -77,6 +67,7 @@ args = parser.parse_args()
 sudoku = Sudoku(args.board)
 
 if ac3(sudoku):
+
     if sudoku.solved():
         output = open('output.txt', 'w')
         for n, var in enumerate(sudoku.variables):
