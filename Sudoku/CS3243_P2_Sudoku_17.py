@@ -46,7 +46,17 @@ class Csp(object):
                             for neighbour in v.neighbours]
 
     def select_unassigned_variable(self):
-        return min(self.unassigned_vars, key=lambda var: len(var.domain))
+        minimum_vars = []
+        min_length = sys.maxsize
+        for var in self.unassigned_vars:
+            if len(var.domain) < min_length:
+                minimum_vars.append(var)
+                min_length = len(var.domain)
+        return min(minimum_vars, key=lambda var: \
+                    sum(1 if any(i in neighbour.domain 
+                        for i in var.domain) else 0 
+                        for neighbour in var.neighbours))        
+        # return min(self.unassigned_vars, key=lambda var: len(var.domain))
 
     def backtrack(self):
         if not self.unassigned_vars:
