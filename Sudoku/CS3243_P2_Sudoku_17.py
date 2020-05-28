@@ -26,11 +26,11 @@ class Variable(object):
                 return False
         return True
 
-    def forward_check(self, value):
-        for neighbour in self.neighbours:
-            if value in neighbour.domain:
-                neighbour.domain.discard(value)
-                self.pruned[neighbour] = value
+    # def forward_check(self, value):
+    #     for neighbour in self.neighbours:
+    #         if value in neighbour.domain:
+    #             neighbour.domain.discard(value)
+    #             self.pruned[neighbour] = value
    
     def __repr__(self):
         return self.name + ', ' + str(self.value)
@@ -58,6 +58,10 @@ class Csp(object):
                 self.assign(var, value)
                 inferred_as_possible, original_var_domain_map = self.ac3(var)
                 if inferred_as_possible:
+                    'hello'
+                    for neighbour in var.neighbours:
+                        if value in neighbour.domain:
+                            assert 'Value in neighbour domain'
                     result = self.backtrack()
                     if result:
                         return result
@@ -68,13 +72,13 @@ class Csp(object):
 
     def assign(self, var, value):
         var.value = value
-        var.forward_check(value)
+        # var.forward_check(value)
         self.assigned_vars.add(var)
         self.unassigned_vars.remove(var)
 
     def unassign(self, var):
-        [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
-        var.pruned = {}
+        # [neighbour.domain.add(value) for (neighbour, value) in var.pruned.items()]
+        # var.pruned = {}
         var.value = None
         self.unassigned_vars.add(var)
         self.assigned_vars.remove(var)
