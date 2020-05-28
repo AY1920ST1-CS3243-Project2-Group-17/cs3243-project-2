@@ -5,6 +5,8 @@ Created on Fri Feb 24 02:00:34 2017
 @author: abhyudai
 """
 
+# Source: https://github.com/anbohuyn/sudoku-solver/blob/master/SudokuSolver.py
+
 import numpy as np
 import Queue
 

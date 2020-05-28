@@ -3,6 +3,7 @@ from sudoku import Sudoku
 import os
 from collections import deque
 
+# Source: https://github.com/speix/sudoku-solver
 
 def ac3(sudoku):
 
