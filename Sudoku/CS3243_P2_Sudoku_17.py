@@ -58,10 +58,9 @@ class Csp(object):
                 self.assign(var, value)
                 inferred_as_possible, original_var_domain_map = self.ac3(var)
                 if inferred_as_possible:
-                    'hello'
                     for neighbour in var.neighbours:
                         if value in neighbour.domain:
-                            assert 'Value in neighbour domain'
+                            assert False
                     result = self.backtrack()
                     if result:
                         return result
@@ -110,6 +109,7 @@ class Csp(object):
 
         while queue:
             xi, xj = queue.popleft()
+            curr = xi.domain.copy()
             revised, original_var_domain_map = revise(xi, xj, original_var_domain_map)
             if revised:
                 if not xi.domain:
