@@ -38,6 +38,7 @@ class Sudoku:
             for combination in combinations:
                 if [combination[0], combination[1]] not in self.constraints:
                     self.constraints.append([combination[0], combination[1]])
+        pass
 
     def build_neighbors(self):
 

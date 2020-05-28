@@ -33,33 +33,35 @@ class Variable(object):
              for neighbour in self.neighbours]
     
     def set_value_and_update_neighbours(self, val):
-        self.value = val
-        for neighbour in self.neighbours:
-            neighbour.domain.discard(val)
-        [self.discard_from_domain(i) for i in self.domain.copy()]
-        self.is_filled = True
+        if not self.is_assigned:
+            self.value = val
+            for neighbour in self.neighbours:
+                neighbour.domain.discard(val)
+            [self.discard_from_domain(i) for i in self.domain.copy()]
+        # self.is_filled = True
 
     def unset_value_and_update_neighbours(self, val):
         self.value = None
         for neighbour in self.neighbours:
-            neighbour.domain.add(val)
+            if not neighbour.is_assigned:
+                neighbour.domain.add(val)
         self.restore_discarded_domain()
-        self.is_filled = False
+        # self.is_filled = False
 
     def is_assigned(self):
         return self.value is not None
 
-    def discard_from_domain(self, val):
-        self.domain.discard(val)
-        self.discarded_domain.append(val)
+    # def discard_from_domain(self, val):
+    #     self.domain.discard(val)
+    #     self.discarded_domain.append(val)
     
-    def clear_discarded_domain(self):
-        self.discarded_domain = []
+    # def clear_discarded_domain(self):
+    #     self.discarded_domain = []
 
-    def restore_discarded_domain(self):
-        for val in self.discarded_domain:
-            self.domain.add(val)
-        self.clear_discarded_domain()
+    # def restore_discarded_domain(self):
+    #     for val in self.discarded_domain:
+    #         self.domain.add(val)
+    #     self.clear_discarded_domain()
 
     @staticmethod
     def not_equal(var, other):
@@ -101,57 +103,114 @@ class Csp(object):
                        for neighbour in var.neighbours)
         return min(tie_breakers, key=tie_breaker_comparator)        
 
-    def backtrack(self, caller=backtrack_id):
-        global backtrack_id
-        backtrack_id += 1
-        # if backtrack_id == 200000:
-        #     exit()
-        curr_id = backtrack_id
-        if backtrack_id % 10000 == 0:
-            print(backtrack_id)
-        if len(self.assigned_vars) - self.init_assigned >= 50:
-            print(str(len(self.assigned_vars) - self.init_assigned) + ' variables assigned. ' 
-                + str(len(self.unassigned_vars)) + ' remaining.')
-            Sudoku.show_puzzle(self, show_log=True)
-        self.print_log('')
-        self.print_log('ID' + str(curr_id) + ' called by ' + str(caller))
+    def backtrack(self):
         if self.is_solved():
             return True
         var = self.select_unassigned_var()
-        self.print_log('ID' + str(curr_id) + ': ' + str(var) + ' selected with ordered domain ' + str(var.get_ordered_domain_values()))
         for value in var.get_ordered_domain_values():
-            # self.print_log('Trying ' + str(value) + ' for ' + str(var))
             if all(self.satisfies_constraints_between(var, neighbour, value) 
                    for neighbour in var.neighbours):
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' satisfies constraints for ' + str(var))
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
-                self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
                 var.set_value_and_update_neighbours(value)
                 self.unassigned_vars.discard(var)
                 self.assigned_vars.add(var)
-                is_arc_consistent = self.ac_3(var)
-                if is_arc_consistent:
-                    self.confirm_inference()
-                    self.print_log('ID' + str(curr_id) + ': Arc consistency maintained for ' + str(var) + ' with value ' + str(value))
-                    self.print_log('ID' + str(curr_id) + ' calling ' + str(backtrack_id + 1))
-                    result = self.backtrack(curr_id)
-                    if result != False:
-                        return result
-                    else:
-                        self.print_log('ID' + str(curr_id) + ' received failed result, backtracking...')
-                else:
-                    self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
+                result = self.backtrack()
+                if result:
+                    return result
                 var.unset_value_and_update_neighbours(value)
-                if not is_arc_consistent:
-                    var.domain.discard(value)
-                # else:
-                #     self.undo_inference()
                 self.assigned_vars.discard(var)
                 self.unassigned_vars.add(var)
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
-            else:
-                self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' does not satisfy constraints for ' + str(var))
         return False
+
+    def ac3(self):
+        def revise(xi, xj):
+            revised = False
+            for x in xi.domain.copy():
+                if not any (self.satisfies_constraints_between(xi, xj, x, y) 
+                            for y in xj.domain):
+                    xi.domain.discard(x)
+                    revised = True
+            return revised
+
+        queue = deque()
+        for v in self.name_var_map.values():
+            for neighbour in v.neighbours:
+                queue.append((v, neighbour))
+            
+        while queue:
+            xi, xj = queue.popleft()
+            if revise(xi, xj):
+                if not xi.domain:
+                    return False
+                for xk in xi.neighbours:
+                    if xk != xi:
+                        queue.append((xk, xi))
+        return True
+
+    def solve(self):
+        return self.ac3() or self.is_solved() or self.backtrack()
+
+    # for d in sudoku.domains:
+    #     sudoku.domains[d] = assignment[d] if len(d) > 1 else sudoku.domains[d]
+    # if assignment:
+    #     output = open('output.txt', 'w')
+    #     for n, var in enumerate(sudoku.variables):
+    #     # for var in sudoku.variables:
+    #         output.write(str(sudoku.domains[var]) + ' ' + ('\n' if (n+1)%9==0 else ''))
+    #         # output.write(str(sudoku.domains[var]))
+    #     output.close()
+    # else:
+    #     print "No solution exists"
+    # def backtrack(self, caller=backtrack_id):
+    #     global backtrack_id
+    #     backtrack_id += 1
+    #     # if backtrack_id == 200000:
+    #     #     exit()
+    #     curr_id = backtrack_id
+    #     if backtrack_id % 10000 == 0:
+    #         print(backtrack_id)
+    #     if len(self.assigned_vars) - self.init_assigned >= 50:
+    #         print(str(len(self.assigned_vars) - self.init_assigned) + ' variables assigned. ' 
+    #             + str(len(self.unassigned_vars)) + ' remaining.')
+    #         Sudoku.show_puzzle(self, show_log=True)
+    #     self.print_log('')
+    #     self.print_log('ID' + str(curr_id) + ' called by ' + str(caller))
+    #     if self.is_solved():
+    #         return True
+    #     var = self.select_unassigned_var()
+    #     self.print_log('ID' + str(curr_id) + ': ' + str(var) + ' selected with ordered domain ' + str(var.get_ordered_domain_values()))
+    #     for value in var.get_ordered_domain_values():
+    #         # self.print_log('Trying ' + str(value) + ' for ' + str(var))
+    #         if all(self.satisfies_constraints_between(var, neighbour, value) 
+    #                for neighbour in var.neighbours):
+    #             self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' satisfies constraints for ' + str(var))
+    #             self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' assigned to ' + str(var))
+    #             self.print_log('ID' + str(curr_id) + ': Checking Arc consistency for ' + str(var))
+    #             var.set_value_and_update_neighbours(value)
+    #             self.unassigned_vars.discard(var)
+    #             self.assigned_vars.add(var)
+    #             is_arc_consistent = self.ac_3(var)
+    #             if is_arc_consistent:
+    #                 self.confirm_inference()
+    #                 self.print_log('ID' + str(curr_id) + ': Arc consistency maintained for ' + str(var) + ' with value ' + str(value))
+    #                 self.print_log('ID' + str(curr_id) + ' calling ' + str(backtrack_id + 1))
+    #                 result = self.backtrack(curr_id)
+    #                 if result != False:
+    #                     return result
+    #                 else:
+    #                     self.print_log('ID' + str(curr_id) + ' received failed result, backtracking...')
+    #             else:
+    #                 self.print_log('ID' + str(curr_id) + ': ' + 'Arc Consistency not maintained for ' + str(var) + ' with value ' + str(value))
+    #             var.unset_value_and_update_neighbours(value)
+    #             if not is_arc_consistent:
+    #                 var.domain.discard(value)
+    #             # else:
+    #             #     self.undo_inference()
+    #             self.assigned_vars.discard(var)
+    #             self.unassigned_vars.add(var)
+    #             self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' unassigned from ' + str(var))
+    #         else:
+    #             self.print_log('ID' + str(curr_id) + ': ' + str(value) + ' does not satisfy constraints for ' + str(var))
+    #     return False
     
     def satisfies_constraints_between(self, var, other, 
                                       new_val, new_other_val=None):
@@ -169,50 +228,50 @@ class Csp(object):
             other.value = temp2
         return is_valid
 
-    def undo_inference(self):
-        for var in self.variables_with_discarded_domain_vals:
-            var.restore_discarded_domain()
-        self.variables_with_discarded_domain_vals = []
+    # def undo_inference(self):
+    #     for var in self.variables_with_discarded_domain_vals:
+    #         var.restore_discarded_domain()
+    #     self.variables_with_discarded_domain_vals = []
 
-    def confirm_inference(self):
-        for var in self.variables_with_discarded_domain_vals:
-            var.clear_discarded_domain()
-        self.variables_with_discarded_domain_vals = []
+    # def confirm_inference(self):
+    #     for var in self.variables_with_discarded_domain_vals:
+    #         var.clear_discarded_domain()
+    #     self.variables_with_discarded_domain_vals = []
 
-    def ac_3(self, var):
-        queue = deque()
-        for neighbour in var.neighbours:
-            queue.append((var, neighbour))
-            queue.append((neighbour, var))
-        # print('Initial AC3 Queue: ' + str(queue))
-        # variables_with_discarded_domain_vals = []
+    # def ac_3(self, var):
+    #     queue = deque()
+    #     for neighbour in var.neighbours:
+    #         queue.append((var, neighbour))
+    #         queue.append((neighbour, var))
+    #     # print('Initial AC3 Queue: ' + str(queue))
+    #     # variables_with_discarded_domain_vals = []
 
-        def revise(xi, xj):
-            revised = False
+    #     def revise(xi, xj):
+    #         revised = False
                 
-            for x in xi.domain.copy():
-                # if xi.name == 'I9' or xj.name == 'I9':
-                if not any(self.satisfies_constraints_between(xi, xj, x, y) 
-                           for y in (xj.domain if not len(xj.domain) == 0 else [xj.value])):
-                    print(str(x) + ' discarded from xi: ' + str(xi) + ' when compared to xj: ' +  str(xj))
-                    xi.discard_from_domain(x)
-                    self.variables_with_discarded_domain_vals.append(xi)
-                    revised = True
-                elif len(xj.domain) != 0:
-                    print('Arc consistency maintained between xi: ' + str(xi) + ' with value ' + str(x)
-                    + ' and xj: ' +  str(xj))
-            return revised
+    #         for x in xi.domain.copy():
+    #             # if xi.name == 'I9' or xj.name == 'I9':
+    #             if not any(self.satisfies_constraints_between(xi, xj, x, y) 
+    #                        for y in (xj.domain if not len(xj.domain) == 0 else [xj.value])):
+    #                 print(str(x) + ' discarded from xi: ' + str(xi) + ' when compared to xj: ' +  str(xj))
+    #                 xi.discard_from_domain(x)
+    #                 self.variables_with_discarded_domain_vals.append(xi)
+    #                 revised = True
+    #             elif len(xj.domain) != 0:
+    #                 print('Arc consistency maintained between xi: ' + str(xi) + ' with value ' + str(x)
+    #                 + ' and xj: ' +  str(xj))
+    #         return revised
 
-        while queue:
-            xi, xj = queue.popleft()
-            if revise(xi, xj):
-                if not xi.is_filled and len(xi.domain) == 0:
-                    print(str(xi) + ' failed Arc Consistency test.')
-                    return False
-                for xk in xi.neighbours:
-                    if xk is not xj:
-                        queue.append((xk, xi))
-        return True
+    #     while queue:
+    #         xi, xj = queue.popleft()
+    #         if revise(xi, xj):
+    #             if not xi.is_filled and len(xi.domain) == 0:
+    #                 print(str(xi) + ' failed Arc Consistency test.')
+    #                 return False
+    #             for xk in xi.neighbours:
+    #                 if xk is not xj:
+    #                     queue.append((xk, xi))
+    #     return True
 
     def is_solved(self):
         return len(self.unassigned_vars) == 0
@@ -281,8 +340,8 @@ class Sudoku(object):
         
         csp = get_csp()
         Sudoku.show_puzzle(csp)
-        print('\n'.join([str((v, v.domain)) for k, v in sorted(csp.name_var_map.items())]))
-        print(csp.backtrack())
+        # print('\n'.join([str((v, v.domain)) for k, v in sorted(csp.name_var_map.items())]))
+        print(csp.solve())
         Sudoku.show_puzzle(csp)
 
         # self.ans is a list of lists
