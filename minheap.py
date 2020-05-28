@@ -1,4 +1,4 @@
-class MinHeap:
+class PriorityQueue:
     def __init__(self, ls=None, minheap=True, 
                  comparator=lambda x: x):
         self.pq = [0]
@@ -148,7 +148,7 @@ class MinHeap:
     def __nonzero__(self):
         return self.BinaryHeapSize != 0
 
-heap = MinHeap(comparator=lambda x: x[0])
+heap = PriorityQueue(comparator=lambda x: x[0])
 unsorted = [(10, 3, 4), (2, 1), (1, 4), (2, 0), (1, 5), (2, -1), (2, -3), (3, -1)]
 [heap.push(i) for i in unsorted]
 
