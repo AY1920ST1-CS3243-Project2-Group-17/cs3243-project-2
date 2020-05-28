@@ -47,18 +47,13 @@ class MinHeap:
         self.shift_down(index)
     
     def remove(self, key):
-        # print('Before remove', self.key_index_map)
         index = self.key_index_map[key][-1]
         self.key_index_map[self.pq[-1]][-1] = index
         try:
             self.key_index_map[key].pop()
         except IndexError:
             del self.key_index_map[key]
-        # print(self.BinaryHeapSize, index, 'heap size and index')
-        # print(self.pq[index], 'pq index item')
-        # print(self.pq[-1], 'last pq item')
         self.pq[index], self.pq[-1] = self.pq[-1], self.pq[index]   
-        # print('Mid remove', self.key_index_map)
         self.pq.pop()
         self.BinaryHeapSize -= 1
         if index < self.BinaryHeapSize:
@@ -73,7 +68,7 @@ class MinHeap:
             self.key_index_map[self.pq[i]][-1], self.key_index_map[self.pq[self.parent(i)]][-1] = (
                 self.key_index_map[self.pq[self.parent(i)]][-1], self.key_index_map[self.pq[i]][-1])
             i = self.parent(i)
-    
+
     def push(self, key):
         self.BinaryHeapSize += 1
         if self.BinaryHeapSize >= len(self.pq):
@@ -113,7 +108,6 @@ class MinHeap:
                 break
   
     def pop(self):
-        extreme_v=0
         if self.BinaryHeapSize != 0:
             extreme_v = self.pq[1]
             try:
@@ -126,7 +120,10 @@ class MinHeap:
         else:
             raise IndexError('Heap is empty!')
         return extreme_v
-  
+
+    def peek(self):
+        return self.pq[1]
+
     def create_heap(self, ls):
         self.BinaryHeapSize = len(ls)
         self.pq = [0]
@@ -180,7 +177,6 @@ heap.remove((2, 1))
 # print(heap.pq)
 # print(heap.key_index_map)
 
-
 heap.remove((2, 1))
 
 
@@ -189,10 +185,13 @@ heap.remove((5, 11))
 
 heap.remove((5, 1))
 
+heap.push((0, 1))
 # heap.update((2, -3), (5, 11))
 
 # heap.update(2, 12)
 # heap.update(1, 13)
+
+print(heap.peek())
 
 while heap:
     ls.append(heap.pop())
