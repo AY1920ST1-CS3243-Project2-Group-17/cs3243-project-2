@@ -76,7 +76,7 @@ class Csp(object):
     def ac3(self):
         def revise(xi, xj):
             revised = False
-            for x in xi.domain.copy():
+            for x in list(xi.domain):
                 if all(x == y for y in xj.domain):
                     xi.domain.remove(x)
                     revised = True
