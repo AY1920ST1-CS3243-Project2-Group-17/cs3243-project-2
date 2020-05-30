@@ -76,14 +76,10 @@ class Csp(object):
     def ac3(self):
         def revise(xi, xj):
             revised = False
-            updated_domain = set()
-            for x in xi.domain:
-                if any(x != y for y in xj.domain):
-                    updated_domain.add(x)
-                else:
+            for x in xi.domain.copy():
+                if all(x == y for y in xj.domain):
+                    xi.domain.remove(x)
                     revised = True
-            if revised:
-                xi.domain = updated_domain
             return revised
 
         queue = deque(self.constraints)
