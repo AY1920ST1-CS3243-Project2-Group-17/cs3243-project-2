@@ -1,6 +1,10 @@
+# CS3243 Introduction to Artificial Intelligence
+# Project 2, Part 1: Sudoku
+
 import sys
 import copy
 from collections import deque
+
 
 # Running script: given code can be run with the command:
 # python file.py, ./path/to/init_state.txt ./output/output.txt
@@ -101,20 +105,19 @@ class Sudoku(object):
         self.puzzle = puzzle # self.puzzle is a list of lists
         self.ans = copy.deepcopy(puzzle) # self.ans is a list of lists
 
-    def get_puzzle(self, csp):
-        for k, v in csp.name_var_map.items():
-            self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
-                                                   else 0)
-        return self.ans
-
     def solve(self):
         # TODO: Write your code here
+
+        def set_puzzle(csp):
+            for k, v in csp.name_var_map.items():
+                self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
+                                                    else 0)
 
         def set_variable_neighbours(var_ls):
             for i in range(len(var_ls)-1):
                 for j in range(i+1, len(var_ls)):
                     var_ls[i].neighbours.add(var_ls[j])
-                    var_ls[j].neighbours.add(var_ls[i])
+                    var_ls[j].neighbours.add(var_ls[i])       
 
         def get_csp():
             name_var_map = {}
@@ -151,10 +154,10 @@ class Sudoku(object):
         
         csp = get_csp()
         csp.solve()
-        return self.get_puzzle(csp)
+        set_puzzle(csp)
 
         # self.ans is a list of lists
-        # return self.ans
+        return self.ans
 
     # you may add more classes/functions if you think is useful
     # However, ensure all the classes/functions are in this file ONLY
