@@ -79,6 +79,8 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
+        if not self.getLegalActions(state):
+            return None
         q_vals = util.Counter()
         for action in self.getLegalActions(state):
             q_vals[action] = self.getQValue(state, action)
@@ -99,6 +101,8 @@ class QLearningAgent(ReinforcementAgent):
 
         # The data we have about the state of the game
         # the legal action of this state
+        if not self.getLegalActions(state):
+            return None
         action = random.choice(self.getLegalActions(state)) if util.flipCoin(
             self.epsilon) else self.getPolicy(state)
         # util.raiseNotDefined()
