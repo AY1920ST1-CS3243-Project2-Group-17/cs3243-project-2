@@ -112,7 +112,7 @@ class FixedRandom:
             230984053L, 719791226L, 2718891946L, 624L), None)
         self.random = random.Random()
         self.random.setstate(fixedState)
-
+        
 """
  Data structures useful for implementing SearchAgents
 """

@@ -29,4 +29,4 @@ fi
 # echo $input_file_path
 # echo $output_file_path
 
-python2.7 CS3243_P2_Sudoku_01.py $input_file_path $output_file_path
+python2.7 CS3243_P2_Sudoku_17.py $input_file_path $output_file_path

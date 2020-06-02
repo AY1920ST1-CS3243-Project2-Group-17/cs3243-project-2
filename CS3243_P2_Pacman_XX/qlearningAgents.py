@@ -43,6 +43,16 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         "*** YOUR CODE HERE ***"
+        # Count the number of games we have played
+        self.episodesSoFar = 0
+        # Q-values
+        self.q_value = util.Counter()
+        # current score
+        self.score = 0
+        # last state
+        self.lastState = []
+        # last action
+        self.lastAction = []
 
     def getQValue(self, state, action):
         """
@@ -51,7 +61,8 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.q_value[(state,action)]
+        # util.raiseNotDefined()
 
 
     def computeValueFromQValues(self, state):
@@ -62,7 +73,14 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        q_list = []
+        for a in state.getLegalActions():
+            q = self.getQValue(state,a)
+            q_list.append(q)
+        if not len(q_list):
+            return 0
+        return max(q_list)
+        # util.raiseNotDefined()
 
     def computeActionFromQValues(self, state):
         """
@@ -71,7 +89,23 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        legal = state.getLegalActions()
+        # in the first half of trianing, the agent is forced not to stop
+        # or turn back while not being chased by the ghost
+        # if Directions.STOP in legal:
+        #     legal.remove(Directions.STOP)
+        # if len(self.lastAction) > 0:
+        #     last_action = self.lastAction[-1]
+        #     distance0 = state.getPacmanPosition()[0]- state.getGhostPosition(1)[0]
+        #     distance1 = state.getPacmanPosition()[1]- state.getGhostPosition(1)[1]
+        #     if math.sqrt(distance0**2 + distance1**2) > 2:
+        #         if (Directions.REVERSE[last_action] in legal) and len(legal)>1:
+        #             legal.remove(Directions.REVERSE[last_action])
+        tmp = util.Counter()
+        for action in legal:
+          tmp[action] = self.getQValue(state, action)
+        return tmp.argMax()
+        # util.raiseNotDefined()
 
     def getAction(self, state):
         """
@@ -84,12 +118,24 @@ class QLearningAgent(ReinforcementAgent):
           HINT: You might want to use util.flipCoin(prob)
           HINT: To pick randomly from a list, use random.choice(list)
         """
-        # Pick Action
-        legalActions = self.getLegalActions(state)
-        action = None
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
 
+        # The data we have about the state of the game
+        # the legal action of this state
+        legal = state.getLegalActions()
+        # if Directions.STOP in legal:
+        #     legal.remove(Directions.STOP)
+        # e-greedy
+        if util.flipCoin(self.epsilon):
+            action =  random.choice(legal)
+        else:
+            action = self.getPolicy(state)
+
+        # update attributes
+        # self.score = state.getScore()
+        # self.lastState.append(state)
+        # self.lastAction.append(action)
+
+        # util.raiseNotDefined()
         return action
 
     def update(self, state, action, nextState, reward):
@@ -102,7 +148,11 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        legal = state.getLegalActions()
+        alpha = 1 / (1 + len(legal))
+        q = self.getQValue(state,action)
+        self.q_value[(state,action)] = (1-self.alpha)*q + self.alpha*(reward + 0.8*self.getValue(state))
+        # util.raiseNotDefined()
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
