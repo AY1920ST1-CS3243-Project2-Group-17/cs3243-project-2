@@ -200,7 +200,7 @@ class Application:
         self.running = False
         for i in range(5):
             if not self.stopped:
-                time.sleep(0.1)
+                time.sleep(0.1*1e-2)
         try:
             self.win.destroy()
         except:
@@ -289,9 +289,9 @@ class Application:
         self.stepCount = 0
         self.learner.startEpisode()
         while True:
-            minSleep = .01
+            minSleep = .01*1e-2
             tm = max(minSleep, self.tickTime)
-            time.sleep(tm)
+            time.sleep(tm*1e-2)
             self.stepsToSkip = int(tm / self.tickTime) - 1
 
             if not self.running:

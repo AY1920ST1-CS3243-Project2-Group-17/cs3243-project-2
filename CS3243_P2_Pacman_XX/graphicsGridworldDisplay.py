@@ -36,7 +36,7 @@ class GraphicsGridworldDisplay:
             values[state] = agent.getValue(state)
             policy[state] = agent.getPolicy(state)
         drawValues(self.gridworld, values, policy, currentState, message)
-        sleep(0.05 / self.speed)
+        sleep(0.05 / self.speed*1e-2)
 
     def displayNullValues(self, currentState = None, message = ''):
         values = util.Counter()
@@ -47,7 +47,7 @@ class GraphicsGridworldDisplay:
             #policy[state] = agent.getPolicy(state)
         drawNullValues(self.gridworld, currentState,'')
         # drawValues(self.gridworld, values, policy, currentState, message)
-        sleep(0.05 / self.speed)
+        sleep(0.05 / self.speed*1e-2)
 
     def displayQValues(self, agent, currentState = None, message = 'Agent Q-Values'):
         qValues = util.Counter()
@@ -56,7 +56,7 @@ class GraphicsGridworldDisplay:
             for action in self.gridworld.getPossibleActions(state):
                 qValues[(state, action)] = agent.getQValue(state, action)
         drawQValues(self.gridworld, qValues, currentState, message)
-        sleep(0.05 / self.speed)
+        sleep(0.05 / self.speed)*1e-2
 
 BACKGROUND_COLOR = formatColor(0,0,0)
 EDGE_COLOR = formatColor(1,1,1)

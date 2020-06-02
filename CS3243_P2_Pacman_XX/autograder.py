@@ -314,7 +314,7 @@ def getDisplay(graphicsByDefault, options=None):
     if graphics:
         try:
             import graphicsDisplay
-            return graphicsDisplay.PacmanGraphics(1, frameTime=.05)
+            return graphicsDisplay.PacmanGraphics(1, frameTime=.05*1e-2)
         except ImportError:
             pass
     import textDisplay

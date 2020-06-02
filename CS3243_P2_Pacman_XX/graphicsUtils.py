@@ -127,7 +127,7 @@ def wait_for_click():
             val = _ctrl_leftclick_loc
             _ctrl_leftclick_loc = None
             return val, 'ctrl_left'
-        sleep(0.05)
+        # sleep(0.05)
 
 def draw_background():
     corners = [(0,0), (0, _canvas_ys), (_canvas_xs, _canvas_ys), (_canvas_xs, 0)]
@@ -144,7 +144,7 @@ def end_graphics():
     global _root_window, _canvas, _mouse_enabled
     try:
         try:
-            sleep(1)
+            sleep(1*1e-2)
             if _root_window != None:
                 _root_window.destroy()
         except SystemExit, e:
@@ -306,7 +306,7 @@ def wait_for_keys():
     keys = []
     while keys == []:
         keys = keys_pressed()
-        sleep(0.05)
+        # sleep(0.05)
     return keys
 
 def remove_from_screen(x,
@@ -395,4 +395,4 @@ if __name__ == '__main__':
     g = polygon(ghost_shape, formatColor(1, 1, 1))
     move_to(g, (50, 50))
     circle((150, 150), 20, formatColor(0.7, 0.3, 0.0), endpoints=[15, - 15])
-    sleep(2)
+    # sleep(2)

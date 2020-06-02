@@ -108,6 +108,60 @@ class NewExtractor(FeatureExtractor):
     """
     def getFeatures(self, state, action):
         "*** YOUR CODE HERE ***"
+
+        # extract the grid of food and wall locations and get the ghost locations
+        food = state.getFood()
+        walls = state.getWalls()
+        ghosts = state.getGhostPositions()
+        ghost_states = state.getGhostStates()
+        ghost_scared_timers = [ghostState.scaredTimer for ghostState in ghost_states]
+        scared_ghosts_exist = any(timer > 0 for timer in ghost_scared_timers)
+        
+        features = util.Counter()
+
+        features["bias"] = 1.0
+
+        # compute the location of pacman after he takes the action
+        x, y = state.getPacmanPosition()
+        dx, dy = Actions.directionToVector(action)
+        next_x, next_y = int(x + dx), int(y + dy)
+
+        # count the number of ghosts 1-step away
+        features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g, timer in zip(ghosts, ghost_scared_timers) if timer == 0)
+
+        # if there is no danger of ghosts then add the food feature
+        if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
+            features["eats-food"] = 1.0
+
+        if not features["#-of-ghosts-1-step-away"] and scared_ghosts_exist:        
+            for g, timer in zip(ghosts, ghost_scared_timers):
+                if timer > 0 and g == (x, y):
+                    # some other ghost has the same position and timer is not 0.
+                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)): 
+                        continue
+                    features["eats-scared-ghost"] += 1.0
+
+        dist = closestFood((next_x, next_y), food, walls)
+        if dist is not None:
+            # make the distance a number less than one otherwise the update
+            # will diverge wildly
+            features["closest-food"] = float(dist) / (walls.width * walls.height)
+
+        if scared_ghosts_exist:        
+            ghost_dist = None
+            for g, timer in zip(ghosts, ghost_scared_timers):
+                # adjusted_dist = timer * g
+                if timer > 0 and (g is None or g < ghost_dist):
+                    # some other ghost has the same position and timer is not 0.
+                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)): 
+                        continue
+                    ghost_dist += util.manhattanDistance(g, (x, y))
+
+            if ghost_dist is not None:
+                features["closest-scared-ghost"] = float(ghost_dist) / (walls.width * walls.height)
+
+        features.divideAll(10.0)
+        return features       
         pass
 
 

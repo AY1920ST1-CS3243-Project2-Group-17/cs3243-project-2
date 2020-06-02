@@ -312,7 +312,7 @@ class PacmanGraphics:
             keys = wait_for_keys()
             if 'q' in keys:
                 self.frameTime = 0.1
-        if self.frameTime > 0.01 or self.frameTime < 0:
+        if self.frameTime > 0 or self.frameTime < 0:
             start = time.time()
             fx, fy = self.getPosition(prevPacman)
             px, py = self.getPosition(pacman)
@@ -321,7 +321,7 @@ class PacmanGraphics:
                 pos = px*i/frames + fx*(frames-i)/frames, py*i/frames + fy*(frames-i)/frames
                 self.movePacman(pos, self.getDirection(pacman), image)
                 refresh()
-                sleep(abs(self.frameTime) / frames)
+                sleep(abs(self.frameTime) / frames*1e-2)
         else:
             self.movePacman(self.getPosition(pacman), self.getDirection(pacman), image)
         refresh()

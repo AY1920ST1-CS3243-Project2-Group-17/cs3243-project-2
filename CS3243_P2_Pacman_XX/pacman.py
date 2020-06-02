@@ -320,12 +320,14 @@ class ClassicGameRules:
     def getMaxTimeWarnings(self, agentIndex):
         return 0
 
+speed_factor=1
+
 class PacmanRules:
     """
     These functions govern how pacman interacts with his environment under
     the classic game rules.
     """
-    PACMAN_SPEED=1
+    PACMAN_SPEED=1*speed_factor
 
     def getLegalActions( state ):
         """
@@ -382,7 +384,7 @@ class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
-    GHOST_SPEED=1.0
+    GHOST_SPEED=1.0*speed_factor
     def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
@@ -518,7 +520,7 @@ def readCommand( argv ):
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
     parser.add_option('--frameTime', dest='frameTime', type='float',
-                      help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
+                      help=default('Time to delay between frames; <0 means keyboard'), default=0.1*1e-2)
     parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
@@ -561,11 +563,11 @@ def readCommand( argv ):
         args['display'] = textDisplay.NullGraphics()
     elif options.textGraphics:
         import textDisplay
-        textDisplay.SLEEP_TIME = options.frameTime
+        textDisplay.SLEEP_TIME = options.frameTime*1e-2
         args['display'] = textDisplay.PacmanGraphics()
     else:
         import graphicsDisplay
-        args['display'] = graphicsDisplay.PacmanGraphics(options.zoom, frameTime = options.frameTime)
+        args['display'] = graphicsDisplay.PacmanGraphics(options.zoom, frameTime = options.frameTime*1e-2)
     args['numGames'] = options.numGames
     args['record'] = options.record
     args['catchExceptions'] = options.catchExceptions
