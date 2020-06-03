@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -17,6 +17,7 @@
 from game import Directions, Actions
 import util
 
+
 class FeatureExtractor:
     def getFeatures(self, state, action):
         """
@@ -26,11 +27,13 @@ class FeatureExtractor:
         """
         util.raiseNotDefined()
 
+
 class IdentityExtractor(FeatureExtractor):
     def getFeatures(self, state, action):
         feats = util.Counter()
-        feats[(state,action)] = 1.0
+        feats[(state, action)] = 1.0
         return feats
+
 
 class CoordinateExtractor(FeatureExtractor):
     def getFeatures(self, state, action):
@@ -40,6 +43,7 @@ class CoordinateExtractor(FeatureExtractor):
         feats['y=%d' % state[0]] = 1.0
         feats['action=%s' % action] = 1.0
         return feats
+
 
 def closestFood(pos, food, walls):
     """
@@ -62,6 +66,7 @@ def closestFood(pos, food, walls):
             fringe.append((nbr_x, nbr_y, dist+1))
     # no food found
     return None
+
 
 class SimpleExtractor(FeatureExtractor):
     """
@@ -88,7 +93,8 @@ class SimpleExtractor(FeatureExtractor):
         next_x, next_y = int(x + dx), int(y + dy)
 
         # count the number of ghosts 1-step away
-        features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
+        features["#-of-ghosts-1-step-away"] = sum(
+            (next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
 
         # if there is no danger of ghosts then add the food feature
         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
@@ -98,14 +104,17 @@ class SimpleExtractor(FeatureExtractor):
         if dist is not None:
             # make the distance a number less than one otherwise the update
             # will diverge wildly
-            features["closest-food"] = float(dist) / (walls.width * walls.height)
+            features["closest-food"] = float(dist) / \
+                (walls.width * walls.height)
         features.divideAll(10.0)
         return features
+
 
 class NewExtractor(FeatureExtractor):
     """
     Design you own feature extractor here. You may define other helper functions you find necessary.
     """
+
     def getFeatures(self, state, action):
         "*** YOUR CODE HERE ***"
 
@@ -114,9 +123,15 @@ class NewExtractor(FeatureExtractor):
         walls = state.getWalls()
         ghosts = state.getGhostPositions()
         ghost_states = state.getGhostStates()
-        ghost_scared_timers = [ghostState.scaredTimer for ghostState in ghost_states]
+        ghost_scared_timers = [
+            ghostState.scaredTimer for ghostState in ghost_states]
         scared_ghosts_exist = any(timer > 0 for timer in ghost_scared_timers)
-        
+        active_ghosts_exist = any(timer == 0 for timer in ghost_scared_timers)
+
+
+        active_ghosts = [g for g, timer in zip(ghosts, ghost_scared_timers) if timer == 0]
+        scared_ghosts = [g for g, timer in zip(ghosts, ghost_scared_timers) if timer > 0]
+
         features = util.Counter()
 
         features["bias"] = 1.0
@@ -126,43 +141,60 @@ class NewExtractor(FeatureExtractor):
         dx, dy = Actions.directionToVector(action)
         next_x, next_y = int(x + dx), int(y + dy)
 
-        # count the number of ghosts 1-step away
-        features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g, timer in zip(ghosts, ghost_scared_timers) if timer == 0)
+        if scared_ghosts_exist:
+            features["#-of-scared-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(
+                g, walls) for g in scared_ghosts)
+
+        def ghosts_are_opposite(g1, g2):
+            x_is_opposite = (g1[0] > next_x and g2[0] < next_x) or (g1[0] < next_x and g2[0] > next_x)
+            y_is_opposite = (g1[1] > next_y and g2[1] < next_y) or (g1[1] < next_y and g2[1] > next_y)
+            return x_is_opposite or y_is_opposite
+
+        if active_ghosts_exist:
+            # count the number of ghosts 1-step away
+            features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(
+                g, walls) for g in active_ghosts)
+            # features['#-average-dist-between-ghosts'] = sum(util.manhattanDistance(active_ghosts[i], active_ghosts[j]) for i in range(len(active_ghosts) - 1) for j in range(1, len(active_ghosts))) / len(active_ghosts)
+            # features ['#-num-ghosts-in-opp-directions'] = sum(ghosts_are_opposite(active_ghosts[i], active_ghosts[j]) for i in range(len(active_ghosts) - 1) for j in range(1, len(active_ghosts)))
 
         # if there is no danger of ghosts then add the food feature
         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
             features["eats-food"] = 1.0
 
-        if not features["#-of-ghosts-1-step-away"] and scared_ghosts_exist:        
+        if not features["#-of-ghosts-1-step-away"] and scared_ghosts_exist:
             for g, timer in zip(ghosts, ghost_scared_timers):
-                if timer > 0 and g == (x, y):
+                if timer > 0 and g == (next_x, next_y):
                     # some other ghost has the same position and timer is not 0.
-                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)): 
+                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)):
                         continue
-                    features["eats-scared-ghost"] += 1.0
+                    features["eats-scared-ghost"] = 1.0
 
         dist = closestFood((next_x, next_y), food, walls)
         if dist is not None:
             # make the distance a number less than one otherwise the update
             # will diverge wildly
-            features["closest-food"] = float(dist) / (walls.width * walls.height)
+            features["closest-food"] = float(dist) / \
+                (walls.width * walls.height)
 
-        if scared_ghosts_exist:        
+        if scared_ghosts_exist:
             ghost_dist = None
             for g, timer in zip(ghosts, ghost_scared_timers):
                 # adjusted_dist = timer * g
-                if timer > 0 and (g is None or g < ghost_dist):
+                if timer > 0 and (ghost_dist is None or util.manhattanDistance(g, (next_x, next_y)) < ghost_dist):
                     # some other ghost has the same position and timer is not 0.
-                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)): 
+                    if ghost_dist is not None and timer > ghost_dist:
                         continue
-                    ghost_dist += util.manhattanDistance(g, (x, y))
+                    if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)):
+                        continue
+                    if ghost_dist is None:
+                        ghost_dist = util.manhattanDistance(g, (next_x, next_y))
+                    else:
+                        ghost_dist += util.manhattanDistance(g, (next_x, next_y))
 
             if ghost_dist is not None:
-                features["closest-scared-ghost"] = float(ghost_dist) / (walls.width * walls.height)
+                features["closest-scared-ghost"] = float(
+                    ghost_dist) / (walls.width * walls.height)
 
         features.divideAll(10.0)
-        return features       
+        return features
         pass
-
-
-        
