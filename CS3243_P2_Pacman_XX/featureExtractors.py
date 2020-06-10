@@ -172,7 +172,7 @@ class NewExtractor(FeatureExtractor):
         else:
             if scared_ghosts_exist:
                 for g, timer in zip(ghosts, ghost_scared_timers):
-                    if timer > 0 and g == (next_x, next_y):
+                    if timer > 0 and (next_x, next_y) in Actions.getLegalNeighbors(g, walls):
                         # some other ghost has the same position and timer is not 0.
                         #if any(g == other and other is not g and othertimer == 0 for other, othertimer in zip(ghosts, ghost_scared_timers)):
                         #    features["eats-scared-ghost"] = 0
@@ -181,6 +181,8 @@ class NewExtractor(FeatureExtractor):
                         features["eats-scared-ghost"] = 2.0
                     if timer <= 0 and g == (next_x, next_y):
                         features["eats-scared-ghost"] = 0
+            else:
+                 features["eats-scared-ghost"] = 0
 
         dist = closestFood((next_x, next_y), food, walls)
         if dist is not None:
