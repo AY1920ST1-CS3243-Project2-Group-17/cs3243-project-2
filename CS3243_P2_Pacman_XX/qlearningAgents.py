@@ -82,8 +82,8 @@ class QLearningAgent(ReinforcementAgent):
         if not self.getLegalActions(state):
             return None
 
-        actionQValues = {action: self.getQValue(state, action) 
-                         for action in self.getLegalActions(state)}
+        actionQValues = dict((action, self.getQValue(state, action)) 
+                             for action in self.getLegalActions(state))
         bestActions = [action for action, qValue in actionQValues.items()
                        if (qValue == max(actionQValues.values()))]
           
