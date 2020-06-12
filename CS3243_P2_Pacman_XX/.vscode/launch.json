@@ -4,10 +4,15 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        {"name":"Approximate QAgent",
+            "type":"python",
+            "request":"launch",
+            "args": ["-p", "ApproximateQAgent", "-x", "2000", "-n", "2010", "-l", "smallGrid"],
+            "program":"pacman.py",
+            "console":"integratedTerminal"
+        },
         {
             "name": "Python: Current File",
-            "args": ["800000000003600000070090200050007000000045700000100030001000068008500010090000400"],
-            // "args": ["Sudoku/public_tests_p2_sudoku/input1.txt", "Sudoku/my_outputs/output_1.txt"],
             "type": "python",
             "request": "launch",
             "program": "${file}",
