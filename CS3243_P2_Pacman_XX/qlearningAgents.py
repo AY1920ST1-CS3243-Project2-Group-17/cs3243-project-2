@@ -82,17 +82,14 @@ class QLearningAgent(ReinforcementAgent):
         if not self.getLegalActions(state):
             return None
 
-        actionQValues = {}
         actions = self.getLegalActions(state)
-        for action in actions:
-            actionQValues[action] = self.getQValue(state, action)
-        
-        bestActions = [action
-                        for action, qValue in actionQValues.items()
-                        if (qValue == max(actionQValues.values()))]
-          
+        bestQValue = self.computeValueFromQValues(state)
+
+        bestActions = [action for action in actions
+            if self.getQValue(state, action) == bestQValue]
+
         return random.choice(bestActions)
-        
+
         # util.raiseNotDefined()
 
     def getAction(self, state):
