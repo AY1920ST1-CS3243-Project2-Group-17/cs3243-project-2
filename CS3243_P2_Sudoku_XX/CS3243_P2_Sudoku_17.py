@@ -24,6 +24,7 @@ class Variable(object):
                           for neighbour in self.neighbours))
 
     def is_consistent(self, value):
+        # determines if the given value for this variable is consistent
         for neighbour in self.neighbours:
             if neighbour.value == value:
                 return False
@@ -53,8 +54,11 @@ class Csp(object):
 
     def backtrack(self):
         if not self.unassigned_vars:
+            # no more unassigned variables, the Csp is solved
             return True
         var = self.select_unassigned_variable()
+
+        # for each possible value in the variable's domain
         for value in var.order_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
@@ -62,6 +66,8 @@ class Csp(object):
                 if result:
                     return result
                 self.unassign(var)
+        
+        # no consistent values are found; the Csp cannot be solved
         return False
 
     def assign(self, var, value):
@@ -113,7 +119,8 @@ class Sudoku(object):
     def solve(self):
         # TODO: Write your code here
 
-        def set_puzzle(csp):
+        def set_ans(csp):
+            # sets the ans attributes to the solved values
             for k, v in csp.name_var_map.items():
                 self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
                                                     else 0)
@@ -125,19 +132,26 @@ class Sudoku(object):
                     var_ls[j].neighbours.add(var_ls[i])       
 
         def get_csp():
+            # returns a Csp object with the given constraints and inputs
             name_var_map = {}
             row_constraints, col_constraints, box_constraints = {}, {}, {}
+
             for a, line in enumerate(self.puzzle):
                 for n, number in enumerate(line):
+                    # creates the Variable object corresponding to the variable
                     number = number if number != 0 else None
                     row_letter, col_index = chr(a + 65), str(n + 1)
                     name = row_letter + col_index
                     var = Variable(name, number, 
                                    set(range(1, 10) if number is None else [number]))
+                    
+                    # sets the corresponding entry in name_var_map of the Csp
+                    # to the created Variable object
                     name_var_map[name] = var
                     box_row, box_col = a // 3, n // 3
                     box_index = box_row * 3 + box_col
                     
+                    # adds the row, column and box constraints
                     try:
                         row_constraints[row_letter].append(var)
                     except KeyError:
@@ -159,7 +173,7 @@ class Sudoku(object):
         
         csp = get_csp()
         csp.solve()
-        set_puzzle(csp)
+        set_ans(csp)
 
         # self.ans is a list of lists
         return self.ans
