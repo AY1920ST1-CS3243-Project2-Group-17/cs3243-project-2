@@ -4,7 +4,7 @@
 import sys
 import copy
 from collections import deque
-
+import time
 
 # Running script: given code can be run with the command:
 # python file.py, ./path/to/init_state.txt ./output/output.txt
@@ -78,6 +78,7 @@ class Csp(object):
         self.assigned_vars.remove(var)
 
     def ac3(self):
+        start = time.time()
         def revise(xi, xj):
             revised = False
             for x in list(xi.domain):
@@ -94,6 +95,10 @@ class Csp(object):
                     return False
                 [queue.append((xk, xi)) for xk in xi.neighbours 
                  if xk != xi]
+
+        end = time.time()
+        print("Time taken: {} seconds" .format(round((end - start),2)))
+
         return True
 
     def solve(self):
