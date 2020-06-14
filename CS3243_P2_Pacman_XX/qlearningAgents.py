@@ -86,9 +86,13 @@ class QLearningAgent(ReinforcementAgent):
         bestQValue = self.computeValueFromQValues(state)
 
         bestActions = [action for action in actions
-            if self.getQValue(state, action) == bestQValue]
+                if self.getQValue(state, action) == bestQValue]
 
-        return random.choice(bestActions)
+        if util.flipCoin(0.9):
+            return random.choice(bestActions)
+
+        else:
+            return bestActions[0]
 
         # util.raiseNotDefined()
 
