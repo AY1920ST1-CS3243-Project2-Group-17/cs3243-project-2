@@ -6,6 +6,8 @@ import copy
 from collections import deque
 # import time
 
+
+
 # Running script: given code can be run with the command:
 # python file.py, ./path/to/init_state.txt ./output/output.txt
 
@@ -18,9 +20,10 @@ class Variable(object):
         self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
-    def order_domain_values(self):
+    def ordered_domain_values(self):
         return sorted(self.domain, key=lambda val:\
-                      sum(1 for neighbour in self.neighbours if val in neighbour.domain))
+                      sum(1 if val in neighbour.domain else 0 
+                          for neighbour in self.neighbours))
 
     def is_consistent(self, value):
         # determines if the given value for this variable is consistent
@@ -32,7 +35,7 @@ class Variable(object):
     def forward_check(self, value):
         for neighbour in self.neighbours:
             if value in neighbour.domain:
-                neighbour.domain.remove(value)
+                neighbour.domain.discard(value)
                 self.pruned[neighbour] = value
     
     def __repr__(self):
@@ -42,8 +45,9 @@ class Csp(object):
     def __init__(self, name_var_map={}):
         self.name_var_map = name_var_map
         self.assigned_vars, self.unassigned_vars = set(), set()
-        for var in self.name_var_map.values():
-            self.assigned_vars.add(var) if var.value is not None else self.unassigned_vars.add(var)
+        [(self.assigned_vars.add(var) 
+          if var.value is not None else self.unassigned_vars.add(var))
+         for var in self.name_var_map.values()]
         self.constraints = [(v, neighbour) for v in self.name_var_map.values()
                             for neighbour in v.neighbours]
 
@@ -53,11 +57,12 @@ class Csp(object):
     def backtrack(self):
         if not self.unassigned_vars:
             # no more unassigned variables, the Csp is solved
+
             return True
         var = self.select_unassigned_variable()
-
+        
         # for each possible value in the variable's domain
-        for value in var.order_domain_values():
+        for value in var.ordered_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
                 result = self.backtrack()
@@ -66,6 +71,7 @@ class Csp(object):
                 self.unassign(var)
         
         # no consistent values are found; the Csp cannot be solved
+
         return False
 
     def assign(self, var, value):
@@ -94,19 +100,16 @@ class Csp(object):
         queue = deque(self.constraints)
         while queue:
             xi, xj = queue.popleft()
-            revised = revise(xi, xj)
-            if revised and xi.domain:
-                for xk in xi.neighbours:
-                    if xk != xi:      
-                        queue.append((xk, xi))
-            elif revised:
-                return False
-
-        return True
+            if revise(xi, xj):
+                if not xi.domain:
+                    return False
+                [queue.append((xk, xi)) for xk in xi.neighbours 
+                 if xk != xi]
         # end = time.time()
         # print("Time taken: {} seconds" .format(round((end - start),2)))
-
+        
         return True
+
 
     def solve(self):
         return self.ac3() and (not self.unassigned_vars or self.backtrack())
@@ -145,7 +148,7 @@ class Sudoku(object):
                     name = row_letter + col_index
                     var = Variable(name, number, 
                                    set(range(1, 10) if number is None else [number]))
-                    
+
                     # sets the corresponding entry in name_var_map of the Csp
                     # to the created Variable object
                     name_var_map[name] = var

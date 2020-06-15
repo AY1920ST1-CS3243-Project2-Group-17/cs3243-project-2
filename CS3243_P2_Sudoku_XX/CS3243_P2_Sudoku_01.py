@@ -18,7 +18,7 @@ class Variable(object):
         self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
-    def ordered_domain_values(self):
+    def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
                       sum(1 if val in neighbour.domain else 0 
                           for neighbour in self.neighbours))
@@ -55,7 +55,7 @@ class Csp(object):
         if not self.unassigned_vars:
             return True
         var = self.select_unassigned_variable()
-        for value in var.ordered_domain_values():
+        for value in var.order_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
                 result = self.backtrack()
@@ -95,7 +95,6 @@ class Csp(object):
                 [queue.append((xk, xi)) for xk in xi.neighbours 
                  if xk != xi]
         return True
-
 
     def solve(self):
         return self.ac3() and (not self.unassigned_vars or self.backtrack())
