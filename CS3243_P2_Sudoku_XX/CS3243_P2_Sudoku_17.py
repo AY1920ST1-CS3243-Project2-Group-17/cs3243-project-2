@@ -10,9 +10,9 @@ import time
 # python file.py, ./path/to/init_state.txt ./output/output.txt
 
 class Variable(object):
-    def __init__(self, name, value=None, domain=None, 
+    def __init__(self, var_name, value=None, domain=None, 
                  pruned=None, neighbours=None):
-        self.name = name
+        self.var_name = var_name
         self.value = value
         self.domain = set() if domain is None else domain
         self.pruned = {} if pruned is None else pruned
@@ -36,7 +36,7 @@ class Variable(object):
                 self.pruned[neighbour] = value
     
     def __repr__(self):
-        return self.name + ', ' + str(self.value)
+        return self.var_name + ', ' + str(self.value)
 
 class Csp(object):
     def __init__(self, name_var_map={}):
@@ -117,61 +117,119 @@ class Sudoku(object):
     def solve(self):
         # TODO: Write your code here
 
-        def set_ans(csp):
-            # sets the ans attributes to the solved values
-            for k, v in csp.name_var_map.items():
-                self.ans[ord(k[0])-65][int(k[1])-1] = (v.value if v.value is not None 
-                                                    else 0)
-
+        var_names = []
+        var_nums = {}
+        var_vals = {}
+        var_neighbours = {}
+        var_domains = {}
+        var_pruned = {}
+        
         def set_variable_neighbours(var_ls):
             for i in range(len(var_ls)-1):
                 for j in range(i+1, len(var_ls)):
-                    var_ls[i].neighbours.add(var_ls[j])
-                    var_ls[j].neighbours.add(var_ls[i])       
+                    var_neighbours[var_ls[i]].add(var_ls[j])
+                    var_neighbours[var_ls[j]].add(var_ls[i])  
 
-        def get_csp():
-            # returns a Csp object with the given constraints and inputs
-            name_var_map = {}
-            row_constraints, col_constraints, box_constraints = {}, {}, {}
+        row_constraints, col_constraints, box_constraints = {}, {}, {}
+        assigned_vars, unassigned_vars = set(), set()
+        [(assigned_vars.add(var_name) if var_vals[var_name] is not None else unassigned_vars.add(var_name))
+        for var_name in var_names]
 
-            for a, line in enumerate(self.puzzle):
-                for n, number in enumerate(line):
-                    # creates the Variable object corresponding to the variable
-                    number = number if number != 0 else None
-                    row_letter, col_index = chr(a + 65), str(n + 1)
-                    name = row_letter + col_index
-                    var = Variable(name, number, 
-                                   set(range(1, 10) if number is None else [number]))
-                    
-                    # sets the corresponding entry in name_var_map of the Csp
-                    # to the created Variable object
-                    name_var_map[name] = var
-                    box_row, box_col = a // 3, n // 3
-                    box_index = box_row * 3 + box_col
-                    
-                    # adds the row, column and box constraints
-                    try:
-                        row_constraints[row_letter].append(var)
-                    except KeyError:
-                        row_constraints[row_letter] = [var]
-                    try:
-                        col_constraints[col_index].append(var)
-                    except KeyError:
-                        col_constraints[col_index] = [var]
-                    try:
-                        box_constraints[box_index].append(var)
-                    except KeyError:
-                        box_constraints[box_index] = [var]
+        for a, line in enumerate(self.puzzle):
+            for n, number in enumerate(line):
+                # creates the Variable object corresponding to the variable
+                number = number if number != 0 else None
+                row_letter, col_index = chr(a + 65), str(n + 1)
+                var_name = row_letter + col_index
+                var_names.append(var_name)
+                var_vals[var_name] = set(range(1, 10) if number is None else [number]) 
+                var_domains[var_name] = set()
+                var_pruned[var_name] = {}
+                var_neighbours[var_name] = set()
 
-                    [set_variable_neighbours(var_ls) 
-                     for constraints_map in [row_constraints, col_constraints, box_constraints]
-                     for var_ls in constraints_map.values()]
+                # sets the corresponding entry in name_var_map of the Csp
+                # to the created Variable object
+                box_row, box_col = a // 3, n // 3
+                box_index = box_row * 3 + box_col
+                
+                # adds the row, column and box constraints
+                try:
+                    row_constraints[row_letter].append(var_name)
+                except KeyError:
+                    row_constraints[row_letter] = [var_name]
+                try:
+                    col_constraints[col_index].append(var_name)
+                except KeyError:
+                    col_constraints[col_index] = [var_name]
+                try:
+                    box_constraints[box_index].append(var_name)
+                except KeyError:
+                    box_constraints[box_index] = [var_name]
 
-            return Csp(name_var_map)
+                [set_variable_neighbours(var_ls) 
+                 for constraints_map in [row_constraints, col_constraints, box_constraints]
+                 for var_ls in constraints_map.values()]
         
-        csp = get_csp()
-        csp.solve()
-        set_ans(csp)
+        if 1 == 1:
+            pass
+
+        def backtrack():
+            if not unassigned_vars:
+                # no more unassigned variables, the Csp is solved
+                return True
+            var_name = min(unassigned_vars, key=lambda var_name: len(var_domains[var_name]))
+            # for each possible value in the variable's domain
+            ordered_domain_values = sorted(var_domains[var_name], 
+                key=lambda val: sum(1 for neighbour in var_neighbours[var_name] 
+                                    if val in var_domains[neighbour]))
+            for value in ordered_domain_values:
+                if not any(var_vals[neighbour] == value for neighbour in var_neighbours[var_name]):
+                    var_vals[var_name] = value
+                    for neighbour in var_neighbours[var_name]:
+                        if value in var_domains[neighbour]:
+                            var_domains[neighbour].discard(value)
+                            var_pruned[var_name][neighbour] = value
+                    assigned_vars.add(var_name)
+                    unassigned_vars.remove(var_name)
+                    result = self.backtrack()
+                    if result:
+                        return result
+                    [var_domains[neighbour].add(value) for (neighbour, value) in var_pruned[var_name].items()]
+                    var_pruned[var_name] = {}
+                    var_value[var_name] = None
+                    unassigned_vars.add(var_name)
+                    assigned_vars.remove(var_name)
+
+            # no consistent values are found; the Csp cannot be solved
+            return False
+
+        def ac3():
+            # start = time.time()
+            def revise(xi, xj):
+                revised = False
+                for x in list(var_domains[xi]):
+                    if all(x == y for y in var_domains[xj]):
+                        var_domains[xi].remove(x)
+                        revised = True
+                return revised
+
+            queue = set([(var_name, neighbour) for var_name in var_names
+                          for neighbour in var_neighbours[var_name]])
+            while queue:
+                xi, xj = queue.pop()
+                if revise(xi, xj):
+                    if not var_domains[xi]:
+                        return False
+                    [queue.add((xk, xi)) for xk in var_neighbours[xi]
+                     if xk != xi]
+            # end = time.time()
+            # print("Time taken: {} seconds" .format(round((end - start),2)))
+            return True
+
+        ac3() and (not unassigned_vars or backtrack())
+        for var_name in var_names:
+            self.ans[ord(var_name[0])-65][int(var_name[1])-1] = (var_vals[var_name]\
+                if var_vals[var_name] is not None else 0)
 
         # self.ans is a list of lists
         return self.ans
