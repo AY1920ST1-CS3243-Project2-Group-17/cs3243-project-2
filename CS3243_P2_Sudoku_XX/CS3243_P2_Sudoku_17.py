@@ -4,7 +4,7 @@
 import sys
 import copy
 from collections import deque
-import time
+# import time
 
 # Running script: given code can be run with the command:
 # python file.py, ./path/to/init_state.txt ./output/output.txt
@@ -20,8 +20,7 @@ class Variable(object):
 
     def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
-                      sum(1 if val in neighbour.domain else 0 
-                          for neighbour in self.neighbours))
+                      sum(1 for neighbour in self.neighbours if val in neighbour.domain))
 
     def is_consistent(self, value):
         # determines if the given value for this variable is consistent
@@ -33,7 +32,7 @@ class Variable(object):
     def forward_check(self, value):
         for neighbour in self.neighbours:
             if value in neighbour.domain:
-                neighbour.domain.discard(value)
+                neighbour.domain.remove(value)
                 self.pruned[neighbour] = value
     
     def __repr__(self):
@@ -43,9 +42,8 @@ class Csp(object):
     def __init__(self, name_var_map={}):
         self.name_var_map = name_var_map
         self.assigned_vars, self.unassigned_vars = set(), set()
-        [(self.assigned_vars.add(var) 
-          if var.value is not None else self.unassigned_vars.add(var))
-         for var in self.name_var_map.values()]
+        for var in self.name_var_map.values():
+            self.assigned_vars.add(var) if var.value is not None else self.unassigned_vars.add(var)
         self.constraints = [(v, neighbour) for v in self.name_var_map.values()
                             for neighbour in v.neighbours]
 
@@ -84,7 +82,7 @@ class Csp(object):
         self.assigned_vars.remove(var)
 
     def ac3(self):
-        start = time.time()
+        # start = time.time()
         def revise(xi, xj):
             revised = False
             for x in list(xi.domain):
@@ -96,14 +94,17 @@ class Csp(object):
         queue = deque(self.constraints)
         while queue:
             xi, xj = queue.popleft()
-            if revise(xi, xj):
-                if not xi.domain:
-                    return False
-                [queue.append((xk, xi)) for xk in xi.neighbours 
-                 if xk != xi]
+            revised = revise(xi, xj)
+            if revised and xi.domain:
+                for xk in xi.neighbours:
+                    if xk != xi:      
+                        queue.append((xk, xi))
+            elif revised:
+                return False
 
-        end = time.time()
-        print("Time taken: {} seconds" .format(round((end - start),2)))
+        return True
+        # end = time.time()
+        # print("Time taken: {} seconds" .format(round((end - start),2)))
 
         return True
 
