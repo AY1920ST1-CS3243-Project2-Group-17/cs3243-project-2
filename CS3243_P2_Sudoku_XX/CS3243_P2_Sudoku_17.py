@@ -20,8 +20,7 @@ class Variable(object):
 
     def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
-                      sum(1 if val in neighbour.domain else 0 
-                          for neighbour in self.neighbours))
+                      sum(1 for neighbour in self.neighbours if val in neighbour.domain))
 
     def is_consistent(self, value):
         for neighbour in self.neighbours:
@@ -58,9 +57,8 @@ class Csp(object):
         for value in var.order_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
-                result = self.backtrack()
-                if result:
-                    return result
+                if self.backtrack():
+                    return True
                 self.unassign(var)
         return False
 
@@ -81,7 +79,7 @@ class Csp(object):
         def revise(xi, xj):
             revised = False
             for x in list(xi.domain):
-                if all(x == y for y in xj.domain):
+                if not any(x != y for y in xj.domain):
                     xi.domain.remove(x)
                     revised = True
             return revised
@@ -89,11 +87,13 @@ class Csp(object):
         queue = deque(self.constraints)
         while queue:
             xi, xj = queue.popleft()
-            if revise(xi, xj):
-                if not xi.domain:
-                    return False
-                [queue.append((xk, xi)) for xk in xi.neighbours 
-                 if xk != xi]
+            revised = revise(xi, xj)
+            if revised and not xi.domain:
+                return False
+            elif revised:
+                for xk in xi.neighbours:
+                    if xk != xi:
+                        queue.append((xk, xi)) 
         return True
 
     def solve(self):
