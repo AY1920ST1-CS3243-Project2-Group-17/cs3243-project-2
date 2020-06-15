@@ -9,4 +9,4 @@ then
 fi
 
 str="$(cat modified_outputs/input$input_num.txt)"
-python2.7 combined.py $str
+python2.7 driver.py $str

@@ -182,7 +182,11 @@ class NewExtractor(FeatureExtractor):
                     if timer <= 0 and g == (next_x, next_y):
                         features["eats-scared-ghost"] = 0
             else:
-                 features["eats-scared-ghost"] = 0
+                features["eats-scared-ghost"] = 0
+                if features["#-of-capsules-1-step-away"]:
+                    features["eats-capsules"] = 1.0
+                elif food[next_x][next_y]:
+                    features["eats-food"] = 1.0
 
         dist = closestFood((next_x, next_y), food, walls)
         if dist is not None:
