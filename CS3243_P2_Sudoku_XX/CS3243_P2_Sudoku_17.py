@@ -20,8 +20,7 @@ class Variable(object):
 
     def order_domain_values(self):
         return sorted(self.domain, key=lambda val:\
-                      sum(1 if val in neighbour.domain else 0 
-                          for neighbour in self.neighbours))
+                      sum(1 for neighbour in self.neighbours if val in neighbour.domain))
 
     def is_consistent(self, value):
         # determines if the given value for this variable is consistent
@@ -57,7 +56,6 @@ class Csp(object):
             # no more unassigned variables, the Csp is solved
             return True
         var = self.select_unassigned_variable()
-
         # for each possible value in the variable's domain
         for value in var.order_domain_values():
             if var.is_consistent(value):
@@ -84,7 +82,7 @@ class Csp(object):
         self.assigned_vars.remove(var)
 
     def ac3(self):
-        start = time.time()
+        # start = time.time()
         def revise(xi, xj):
             revised = False
             for x in list(xi.domain):
@@ -102,8 +100,8 @@ class Csp(object):
                 [queue.append((xk, xi)) for xk in xi.neighbours 
                  if xk != xi]
 
-        end = time.time()
-        print("Time taken: {} seconds" .format(round((end - start),2)))
+        # end = time.time()
+        # print("Time taken: {} seconds" .format(round((end - start),2)))
 
         return True
 
