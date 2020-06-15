@@ -164,6 +164,7 @@ class NewExtractor(FeatureExtractor):
         # if there is no danger of ghosts then add the food feature
         if not features["#-of-ghosts-1-step-away"] :
             # prioritise capsules over food
+            features["eats-scared-ghost"] = 0
             if features["#-of-capsules-1-step-away"]:
                 features["eats-capsules"] = 1.0
             elif food[next_x][next_y]:
@@ -178,7 +179,7 @@ class NewExtractor(FeatureExtractor):
                         #    features["eats-scared-ghost"] = 0
                         #    continue
                         features["#-of-scared-ghosts-1-step-away"] -= 1
-                        features["eats-scared-ghost"] = 2.0
+                        features["eats-scared-ghost"] = 1.0
                     if timer <= 0 and g == (next_x, next_y):
                         features["eats-scared-ghost"] = 0
             else:
