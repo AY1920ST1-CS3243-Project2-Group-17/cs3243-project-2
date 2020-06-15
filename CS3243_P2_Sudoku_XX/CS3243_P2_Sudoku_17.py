@@ -18,7 +18,7 @@ class Variable(object):
         self.pruned = {} if pruned is None else pruned
         self.neighbours = set() if neighbours is None else neighbours
 
-    def order_domain_values(self):
+    def ordered_domain_values(self):
         return sorted(self.domain, key=lambda val:\
                       sum(1 for neighbour in self.neighbours if val in neighbour.domain))
 
@@ -31,7 +31,7 @@ class Variable(object):
     def forward_check(self, value):
         for neighbour in self.neighbours:
             if value in neighbour.domain:
-                neighbour.domain.discard(value)
+                neighbour.domain.remove(value)
                 self.pruned[neighbour] = value
     
     def __repr__(self):
@@ -54,7 +54,7 @@ class Csp(object):
         if not self.unassigned_vars:
             return True
         var = self.select_unassigned_variable()
-        for value in var.order_domain_values():
+        for value in var.ordered_domain_values():
             if var.is_consistent(value):
                 self.assign(var, value)
                 if self.backtrack():
@@ -84,16 +84,19 @@ class Csp(object):
                     revised = True
             return revised
 
-        queue = deque(self.constraints)
-        while queue:
-            xi, xj = queue.popleft()
+        queue = set(self.constraints)
+        for i in iter(int, 1):
+            if not queue:
+                break
+            xi, xj = queue.pop()
             revised = revise(xi, xj)
-            if revised and not xi.domain:
-                return False
-            elif revised:
+            
+            if revised and xi.domain:
                 for xk in xi.neighbours:
                     if xk != xi:
-                        queue.append((xk, xi)) 
+                        queue.add((xk, xi)) 
+            elif revised:
+                return False
         return True
 
     def solve(self):
